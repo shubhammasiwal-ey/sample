@@ -1,0 +1,3918 @@
+﻿===== FILE: apps\backend\prisma\seed.ts =====
+import { PrismaClient } from '@prisma/client';
+import { seedRoles } from './seeds/roles.seed';
+import { seedResources } from './seeds/resources.seed';
+import { seedRoleResources } from './seeds/role-resources.seed';
+import { seedCountries } from './seeds/country.seed';
+import { seedStates } from './seeds/state.seed';
+import { seedDistricts } from './seeds/district.seed';
+import { seedBlocks } from './seeds/block.seed';
+import { seedTehsils } from './seeds/tehsil.seed';
+import { seedVillages } from './seeds/village.seed';
+import { seedDepartments } from './seeds/department.seed';
+import { seedIssuers } from './seeds/issuer.seed';
+import { seedDocumentTypes } from './seeds/document-type.seed';
+import { seedFormCategories } from './seeds/form-category.seed';
+import { seedFormTypes } from './seeds/form-type.seed';
+import { seedFormFields } from './seeds/form-field.seed';
+import { seedFbFormMapping } from './seeds/m_fb_form_mapping.seed';
+import { seedFbPageMaster } from './seeds/m_fb_page_master.seed';
+import { seedFbPageCategoryMapping } from './seeds/m_fb_page_category_mapping.seed';
+import { seedServicetypes } from './seeds/servicetype.seed';
+import { seedServicesectors } from './seeds/servicesector.seed';
+import { seedServiceincidences } from './seeds/serviceincidence.seed';
+import { seedDocumentCheckpoints } from './seeds/document-checkpoint.seed';
+import { seedDocumentMaster } from './seeds/document-master.seed';
+import { seedUsers } from './seeds/user.seed';
+import { seedMasterTables } from './seeds/master-tables.seed';
+import { seedMsmeYear } from './seeds/msme-year.seed';
+import { seedSector } from './seeds/sectors.seed';
+import { seedLandCategory } from './seeds/land-categories.seed';
+import { seedSubSector } from './seeds/sub-sectors.seed';
+import { seedUnitCategories } from './seeds/unit-categories.seed';
+import { seedAnchorTypes } from './seeds/anchor-types.seed';
+import { seedRegionCategories } from './seeds/region-categories.seed';
+import { seedMappingRegionCategories } from './seeds/mapping-region-categories.seed';
+import { seedBeneficiaryTypes } from './seeds/beneficiary-types.seed';
+import { seedOccurrences } from './seeds/occurrences.seed';
+import { seedIncentiveTypes } from './seeds/incentive-types.seed';
+import { seedFinancialParameter } from './seeds/financial-parameter.seed';
+import { seedUnitTypes } from './seeds/unit-types.seed';
+import { seedPolicies } from './seeds/policy.seed';
+import { seedActPolicyNotifications } from './seeds/act-policy-notification.seed';
+import { seedActPolicyNotificationDepartments } from './seeds/act-policy-notification-department.seed';
+import { seedActPolicyNotificationAmendments } from './seeds/act-policy-notification-amendment.seed';
+import { seedFields } from './seeds/field.seed';
+import { seedNicCodes } from './seeds/nic-code.seed';
+import { seedHsnCodes } from './seeds/hsn-code.seed';
+import { seedWorkflowConfig } from './seeds/workflow-config.seed';
+
+import { seedServiceDetails } from './seeds/service-details.seed';
+import { seedInspections } from './seeds/inspections.seed';
+import { seedCISInspections } from './seeds/cis-inspections.seed';
+import { seedUpclSupplyCategories } from './seeds/upcl-supply-categories.seed';
+import { seedUpclSupplySubcategories } from './seeds/upcl-supply-subcategories.seed';
+import { seedUpclDivisionSubdivisions } from './seeds/upcl-division-subdivisions.seed';
+import { seedUpclVoltage } from './seeds/upcl-voltage.seed';
+import { seedUjsDivision } from './seeds/ujs-division.seed';
+import { seedLabourFactoryTypeMaster } from './seeds/labour-factory-type-master.seed';
+import { seedLabourFactorySec85 } from './seeds/labour-factory-sec85.seed';
+import { seedPollutionControlEquipments } from './seeds/pollution-control-equipments.seed';
+import { seedCurrentLanduse } from './seeds/current-landuse.seed';
+import { seedServices } from './seeds/service.seed';
+import { seedOrganisationNature } from './seeds/organization-nature.seed';
+import { seedPollutionCategories } from './seeds/pollution-categories.seed';
+import { seedDmsDocumentsMapping } from './seeds/dms-documents-mapping.seed';
+
+// NEW: demo sso seed
+import { seedDemoSso } from './seeds/demo-sso.seed';
+
+const prisma = new PrismaClient();
+
+// --- Truncate all tables in the correct order to avoid FK conflicts ---
+async function truncateAllTables(prisma: PrismaClient) {
+  console.log('\nðŸ—‘ï¸  Truncating all tables...');
+
+  const tablesToTruncate = [
+    // Inspection module (has FK to services)
+    'inspection_observation_responses',
+    'inspection_observations',
+    'inspection_transactions',
+    'inspection_checklist_items',
+    'inspection_checklists',
+    'third_party_inspectors',
+    // RBAC
+    'role_resources',
+    'user_logs',
+    'user_tokens',
+    'department_users',
+    'investor_profiles',
+    'users',
+    'm_villages',
+    'm_tehsils',
+    'm_blocks',
+    'm_districts',
+    'm_states',
+    'm_countries',
+    'm_document_checkpoints',
+    'm_documenttypes',
+    'm_issuers',
+    'm_departments',
+    'm_document_master',
+    'm_fb_form_types',
+    'm_fb_form_categories',
+    'm_fb_form_field',
+    'm_fb_form_mapping',
+    'm_fb_page_master',
+    'm_fb_page_category_mapping',
+    'm_nic_code',
+    'm_hsn_code',
+    'master_tables',
+    'm_servicetype',
+    'm_servicesector',
+    'm_serviceincidence', // â† ensure this matches actual table
+    'm_service',
+    'm_pollution_categories',
+    'm_information_wizard',
+    'resources',
+    'roles',
+    'm_act_policy_notification',
+    'm_act_policy_notification_departments',
+    'm_act_policy_notification_amendments',
+    'c_application_workflow_configuration',
+    't_forward_application',
+    't_application_history',
+    't_application_submission',
+    't_sp_applications',
+    't_application_dms_documents_mapping',
+  ];
+
+  for (const tableName of tablesToTruncate) {
+    try {
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tableName}" CASCADE;`);
+      console.log(`  âœ“ Truncated ${tableName}`);
+    } catch (error) {
+      console.warn(`  âš ï¸  Could not truncate ${tableName}: ${(error as Error).message}`);
+    }
+  }
+
+  console.log('âœ… All tables truncated successfully.');
+}
+
+// --- Reset sequences for all tables ---
+async function resetAllSequences(prisma: PrismaClient) {
+  console.log('\nðŸ”„ Resetting all auto-increment sequences...');
+
+  const tables = [
+    { tableName: 'users', seqName: 'users_id_seq' },
+    { tableName: 'roles', seqName: 'roles_id_seq' },
+    { tableName: 'resources', seqName: 'resources_id_seq' },
+    { tableName: 'role_resources', seqName: 'role_resources_id_seq' },
+    { tableName: 'user_logs', seqName: 'user_logs_id_seq' },
+    { tableName: 'user_tokens', seqName: 'user_tokens_id_seq' },
+    { tableName: 'investor_profiles', seqName: 'investor_profiles_id_seq' },
+    { tableName: 'department_users', seqName: 'department_users_id_seq' },
+    { tableName: 'm_countries', seqName: 'm_countries_id_seq' },
+    { tableName: 'm_states', seqName: 'm_states_id_seq' },
+    { tableName: 'm_districts', seqName: 'm_districts_id_seq' },
+    { tableName: 'm_blocks', seqName: 'm_blocks_id_seq' },
+    { tableName: 'm_tehsils', seqName: 'm_tehsils_id_seq' },
+    { tableName: 'm_villages', seqName: 'm_villages_id_seq' },
+    { tableName: 'm_departments', seqName: 'm_departments_id_seq' },
+    { tableName: 'm_issuers', seqName: 'm_issuers_id_seq' },
+    { tableName: 'm_documenttypes', seqName: 'm_documenttypes_id_seq' },
+    { tableName: 'm_document_checkpoints', seqName: 'm_document_checkpoints_id_seq' },
+    { tableName: 'm_document_master', seqName: 'm_document_master_id_seq' },
+    { tableName: 'm_fb_form_types', seqName: 'm_fb_form_types_id_seq' },
+    { tableName: 'm_fb_form_categories', seqName: 'm_fb_form_categories_id_seq' },
+    { tableName: 'm_fb_form_field', seqName: 'm_fb_form_field_id_seq' },
+    { tableName: 'm_fb_form_mapping', seqName: 'm_fb_form_mapping_id_seq' },
+    { tableName: 'm_fb_page_master', seqName: 'm_fb_page_master_id_seq' },
+    { tableName: 'm_fb_page_category_mapping', seqName: 'm_fb_page_category_mapping_id_seq' },
+    { tableName: 'm_servicetype', seqName: 'm_servicetype_id_seq' },
+    { tableName: 'm_servicesector', seqName: 'm_servicesector_id_seq' },
+    { tableName: 'm_serviceincidence', seqName: 'm_serviceincidence_id_seq' }, // â† fixed
+    { tableName: 'm_service', seqName: 'm_service_id_seq' },
+    { tableName: 'm_pollution_categories', seqName: 'm_pollution_categories_id_seq' },
+    { tableName: 'm_nic_code', seqName: 'm_nic_code_id_seq' },
+    { tableName: 'm_hsn_code', seqName: 'm_hsn_code_id_seq' },
+    { tableName: 'm_information_wizard', seqName: 'm_information_wizard_id_seq' },
+    { tableName: 'm_act_policy_notification', seqName: 'm_act_policy_notification_id_seq' },
+    { tableName: 'm_act_policy_notification_departments', seqName: 'm_act_policy_notification_departments_id_seq' },
+    { tableName: 'm_act_policy_notification_amendments', seqName: 'm_act_policy_notification_amendments_id_seq' },
+    { tableName: 'c_application_workflow_configuration', seqName: 'c_application_workflow_configuration_id_seq' },
+    { tableName: 't_forward_application', seqName: 't_forward_application_appr_lvl_id_seq' },
+    { tableName: 't_application_history', seqName: 't_application_history_history_id_seq' },
+    { tableName: 't_application_submission', seqName: 't_application_submission_submission_id_seq' },
+    { tableName: 't_sp_applications', seqName: 't_sp_applications_sno_seq' },
+    { tableName: 't_application_dms_documents_mapping', seqName: 't_application_dms_documents_mapping_mapping_id_seq' },
+  ];
+
+  for (const { tableName, seqName } of tables) {
+    try {
+      const query = `SELECT setval('${seqName}', COALESCE((SELECT MAX(id) FROM "${tableName}"), 0) + 1, false);`;
+      await prisma.$executeRawUnsafe(query);
+      console.log(`  âœ“ Sequence for ${tableName} reset.`);
+    } catch (error) {
+      console.warn(`  âš ï¸  Could not reset sequence for ${tableName}: ${(error as Error).message}`);
+    }
+  }
+
+  // Ensure CAF/submission IDs start after 10000
+  try {
+    await prisma.$executeRawUnsafe(`SELECT setval('t_application_submission_submission_id_seq', 10000, false);`);
+    console.log('  âœ“ Set t_application_submission sequence to start at 10000');
+  } catch (error) {
+    console.warn(`  âš ï¸  Could not set submission sequence to 10000: ${(error as Error).message}`);
+  }
+
+  console.log('âœ… All sequences have been reset correctly.');
+}
+
+async function main() {
+  console.log('ðŸŒ± Starting database seeding...');
+
+  try {
+    console.log('ðŸŒ± Starting database seeding...\n');
+
+    // --- Step 1: Truncate all tables ---
+    await truncateAllTables(prisma);
+
+    // --- Step 2: Reset sequences to 1 before seeding ---
+    console.log('\nðŸ”„ Resetting sequences to prepare for fresh seeding...');
+    const resetTables = [
+      { tableName: 'roles', seqName: 'roles_id_seq' },
+      { tableName: 'resources', seqName: 'resources_id_seq' },
+      { tableName: 'role_resources', seqName: 'role_resources_id_seq' },
+      { tableName: 'm_countries', seqName: 'm_countries_id_seq' },
+      { tableName: 'm_states', seqName: 'm_states_id_seq' },
+      { tableName: 'm_districts', seqName: 'm_districts_id_seq' },
+      { tableName: 'm_blocks', seqName: 'm_blocks_id_seq' },
+      { tableName: 'm_tehsils', seqName: 'm_tehsils_id_seq' },
+      { tableName: 'm_villages', seqName: 'm_villages_id_seq' },
+      { tableName: 'm_issuers', seqName: 'm_issuers_id_seq' },
+      { tableName: 'm_departments', seqName: 'm_departments_id_seq' },
+      { tableName: 'm_documenttypes', seqName: 'm_documenttypes_id_seq' },
+      { tableName: 'm_document_checkpoints', seqName: 'm_document_checkpoints_id_seq' },
+      { tableName: 'm_document_master', seqName: 'm_document_master_id_seq' },
+      { tableName: 'm_fb_form_types', seqName: 'm_fb_form_types_id_seq' },
+      { tableName: 'm_fb_form_categories', seqName: 'm_fb_form_categories_id_seq' },
+      { tableName: 'm_fb_form_field', seqName: 'm_fb_form_field_id_seq' },
+      { tableName: 'm_fb_form_mapping', seqName: 'm_fb_form_mapping_id_seq' },
+      { tableName: 'm_fb_page_master', seqName: 'm_fb_page_master_id_seq' },
+      { tableName: 'm_fb_page_category_mapping', seqName: 'm_fb_page_category_mapping_id_seq' },
+      { tableName: 'm_servicetype', seqName: 'm_servicetype_id_seq' },
+      { tableName: 'm_servicesector', seqName: 'm_servicesector_id_seq' },
+      { tableName: 'm_serviceincidence', seqName: 'm_serviceincidence_id_seq' }, // â† fixed
+      { tableName: 'm_service', seqName: 'm_service_id_seq' },
+      { tableName: 'm_pollution_categories', seqName: 'm_pollution_categories_id_seq' },
+      { tableName: 'm_nic_code', seqName: 'm_nic_code_id_seq' },
+      { tableName: 'm_hsn_code', seqName: 'm_hsn_code_id_seq' },
+      { tableName: 'm_information_wizard', seqName: 'm_information_wizard_id_seq' },
+      { tableName: 'users', seqName: 'users_id_seq' },
+      { tableName: 'm_act_policy_notification', seqName: 'm_act_policy_notification_id_seq' },
+      { tableName: 'm_act_policy_notification_departments', seqName: 'm_act_policy_notification_departments_id_seq' },
+      { tableName: 'm_act_policy_notification_amendments', seqName: 'm_act_policy_notification_amendments_id_seq' },
+      { tableName: 'c_application_workflow_configuration', seqName: 'c_application_workflow_configuration_id_seq' },
+      { tableName: 't_forward_application', seqName: 't_forward_application_appr_lvl_id_seq' },
+      { tableName: 't_application_history', seqName: 't_application_history_history_id_seq' },
+      { tableName: 't_application_submission', seqName: 't_application_submission_submission_id_seq' },
+      { tableName: 't_sp_applications', seqName: 't_sp_applications_sno_seq' },
+      { tableName: 't_application_dms_documents_mapping', seqName: 't_application_dms_documents_mapping_mapping_id_seq' },
+    ];
+
+    for (const { tableName, seqName } of resetTables) {
+      try {
+        await prisma.$executeRawUnsafe(`SELECT setval('${seqName}', 1, false);`);
+        console.log(`  âœ“ Reset ${tableName} sequence to 1`);
+      } catch (error) {
+        console.warn(`  âš ï¸  Could not reset ${tableName} sequence: ${(error as Error).message}`);
+      }
+    }
+
+    // --- Step 3: Seed data in proper order ---
+    console.log('\nðŸ“Œ Starting fresh seeding process...\n');
+
+    // RBAC
+    await seedRoles(prisma);
+    await seedResources(prisma);
+    await seedRoleResources(prisma);
+
+    // Geographic masters
+    await seedCountries(prisma);
+    await seedStates(prisma);
+    await seedDistricts(prisma);
+    await seedBlocks(prisma);
+    await seedTehsils(prisma);
+    await seedVillages(prisma);
+
+    // Other masters (dependencies first!)
+    await seedIssuers(prisma);
+    await seedDocumentTypes(prisma);
+    await seedDocumentCheckpoints(prisma);
+    await seedDepartments(prisma);
+
+    // Policies depend on departments
+    await seedPolicies(prisma);
+    await seedFields(prisma);
+
+    // Document master depends on departments & document types
+    await seedDocumentMaster(prisma);
+
+    // NIC / HSN master data
+    await seedNicCodes(prisma);
+    await seedHsnCodes(prisma);
+    await seedMasterTables(prisma);
+
+    // Users & form/services
+    await seedUsers(prisma);
+    await seedFormTypes(prisma);
+    await seedFormCategories(prisma);
+    await seedFormFields(prisma);
+    await seedFbFormMapping(prisma);
+    await seedFbPageMaster(prisma);
+    await seedFbPageCategoryMapping(prisma);
+    await seedServicetypes(prisma);
+    await seedServicesectors(prisma);
+    await seedServiceincidences(prisma);
+    await seedServices(prisma);
+    await seedWorkflowConfig(prisma);
+    await seedActPolicyNotifications(prisma);
+    await seedActPolicyNotificationDepartments(prisma);
+    await seedActPolicyNotificationAmendments(prisma);
+
+    // KYI and IC masters
+    await seedMsmeYear(prisma);
+    await seedSector(prisma);
+    await seedLandCategory(prisma);
+    await seedSubSector(prisma);
+    await seedUnitCategories(prisma);
+    await seedAnchorTypes(prisma);
+    await seedRegionCategories(prisma);
+    await seedMappingRegionCategories(prisma);
+    await seedBeneficiaryTypes(prisma);
+    await seedOccurrences(prisma);
+    await seedIncentiveTypes(prisma);
+    await seedFinancialParameter(prisma);
+    await seedUnitTypes(prisma);
+    await seedServiceDetails(prisma);
+
+    // Inspections module
+    await seedInspections(prisma);
+    await seedCISInspections(prisma); // CIS: Application Submissions + Inspectors + Inspection Transactions
+
+    // --- Step 4: Ensure demo SSO rows exist (safe upserts) ---
+    await seedDemoSso(prisma);
+
+    console.log('\nâœ… Database seeding completed successfully.');
+
+    // --- Step 5: Final sequence reset ---
+    await resetAllSequences(prisma);
+
+    console.log('\nðŸ“‹ Test Credentials:');
+    console.log('  Admin: admin@example.com / admin@123');
+    console.log('  Department: user@example.com / user@123');
+    console.log('  Investor: investor@example.com / investor@123');
+    console.log('  Joint Director: jd@example.com / user@123');
+    console.log('  Inspector: inspector@example.com / user@123');
+    await seedUpclSupplyCategories(prisma);
+    await seedUpclSupplySubcategories(prisma);
+    await seedUpclDivisionSubdivisions(prisma);
+    await seedUpclVoltage(prisma);
+    await seedUjsDivision(prisma);
+    await seedLabourFactoryTypeMaster(prisma);
+    await seedLabourFactorySec85(prisma);
+    await seedPollutionControlEquipments(prisma);
+    await seedPollutionCategories(prisma);
+    await seedCurrentLanduse(prisma);
+    await seedOrganisationNature(prisma);
+    await seedServices(prisma);
+    await seedDmsDocumentsMapping(prisma);
+
+    console.log('âœ… Database seeding completed successfully!');
+  } catch (error) {
+    console.error('âŒ Database seeding failed:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main();
+
+
+===== FILE: apps\backend\prisma\seeds\country.seed.ts =====
+import { PrismaClient } from '@prisma/client';
+import { countriesData } from './data/countries.data';
+
+export async function seedCountries(prisma: PrismaClient) {
+  try {
+    const result = await prisma.country.createMany({
+      data: countriesData,
+      skipDuplicates: true,
+    });
+
+    console.log(`  âœ… Seeded ${result.count} countries`);
+  } catch (error) {
+    console.error('  âŒ Country seeding failed:', error);
+    throw error;
+  }
+}
+
+
+===== FILE: apps\backend\prisma\seeds\data\countries.data.ts =====
+export const countriesData = [
+  { name: 'Afghanistan', abbreviation: 'AF', boCountryId: 1, lrId: 433, isActive: true },
+  { name: 'Albania', abbreviation: 'AL', boCountryId: 2, lrId: 464, isActive: true },
+  { name: 'Algeria', abbreviation: 'DZ', boCountryId: 3, lrId: 502, isActive: true },
+  { name: 'American Samoa', abbreviation: 'DS', boCountryId: 4, lrId: 551, isActive: true },
+  { name: 'Angola', abbreviation: 'AO', boCountryId: 5, lrId: 557, isActive: true },
+  { name: 'Anguilla', abbreviation: 'AI', boCountryId: 6, lrId: 583, isActive: true },
+  { name: 'Antigua and Barbuda', abbreviation: 'AG', boCountryId: 8, lrId: 587, isActive: true },
+  { name: 'Argentina', abbreviation: 'AR', boCountryId: 9, lrId: 596, isActive: true },
+  { name: 'Armenia', abbreviation: 'AM', boCountryId: 10, lrId: 622, isActive: true },
+  { name: 'Aruba', abbreviation: 'AW', boCountryId: 11, lrId: 634, isActive: true },
+  { name: 'Australia', abbreviation: 'AU', boCountryId: 13, lrId: 638, isActive: true },
+  { name: 'Austria', abbreviation: 'AT', boCountryId: 14, lrId: 647, isActive: true },
+  { name: 'Azerbaijan', abbreviation: 'AZ', boCountryId: 15, lrId: 657, isActive: true },
+  { name: 'Bahamas', abbreviation: 'BS', boCountryId: 16, lrId: 729, isActive: true },
+  { name: 'Bahrain', abbreviation: 'BH', boCountryId: 17, lrId: 751, isActive: true },
+  { name: 'Bangladesh', abbreviation: 'BD', boCountryId: 18, lrId: 764, isActive: true },
+  { name: 'Barbados', abbreviation: 'BB', boCountryId: 19, lrId: 829, isActive: true },
+  { name: 'Belarus', abbreviation: 'BY', boCountryId: 20, lrId: 842, isActive: true },
+  { name: 'Belgium', abbreviation: 'BE', boCountryId: 21, lrId: 850, isActive: true },
+  { name: 'Belize', abbreviation: 'BZ', boCountryId: 22, lrId: 862, isActive: true },
+  { name: 'Benin', abbreviation: 'BJ', boCountryId: 23, lrId: 869, isActive: true },
+  { name: 'Bermuda', abbreviation: 'BM', boCountryId: 24, lrId: 882, isActive: true },
+  { name: 'Burundi', abbreviation: 'BI', boCountryId: 25, lrId: 894, isActive: true },
+  { name: 'Cambodia', abbreviation: 'KH', boCountryId: 26, lrId: 911, isActive: true },
+  { name: 'Cameroon', abbreviation: 'CM', boCountryId: 27, lrId: 936, isActive: true },
+  { name: 'Canada', abbreviation: 'CA', boCountryId: 28, lrId: 947, isActive: false },
+  { name: 'Cape Verde', abbreviation: 'CV', boCountryId: 29, lrId: 961, isActive: false },
+  { name: 'Cayman Islands', abbreviation: 'KY', boCountryId: 30, lrId: 978, isActive: false },
+  { name: 'Central African Republic', abbreviation: 'CF', boCountryId: 31, lrId: 987, isActive: false },
+  { name: 'Chad', abbreviation: 'TD', boCountryId: 32, lrId: 1005, isActive: false },
+  { name: 'Chile', abbreviation: 'CL', boCountryId: 33, lrId: 1020, isActive: false },
+  { name: 'China', abbreviation: 'CN', boCountryId: 34, lrId: 1034, isActive: false },
+  { name: 'Christmas Island', abbreviation: 'CX', boCountryId: 35, lrId: 1066, isActive: false },
+  { name: 'Cocos (Keeling) Islands', abbreviation: 'CC', boCountryId: 37, lrId: 1070, isActive: false },
+  { name: 'Colombia', abbreviation: 'CO', boCountryId: 38, lrId: 1077, isActive: false },
+  { name: 'Comoros', abbreviation: 'KM', boCountryId: 39, lrId: 1111, isActive: false },
+  { name: 'Cook Islands', abbreviation: 'CK', boCountryId: 42, lrId: 1142, isActive: false },
+  { name: 'Costa Rica', abbreviation: 'CR', boCountryId: 43, lrId: 1159, isActive: false },
+  { name: 'Cuba', abbreviation: 'CU', boCountryId: 46, lrId: 1248, isActive: false },
+  { name: 'Cyprus', abbreviation: 'CY', boCountryId: 47, lrId: 1264, isActive: false },
+  { name: 'Denmark', abbreviation: 'DK', boCountryId: 49, lrId: 1286, isActive: false },
+  { name: 'Djibouti', abbreviation: 'DJ', boCountryId: 50, lrId: 1303, isActive: false },
+  { name: 'Dominica', abbreviation: 'DM', boCountryId: 52, lrId: 1315, isActive: false },
+  { name: 'Dominican Republic', abbreviation: 'DO', boCountryId: 53, lrId: 1326, isActive: false },
+  { name: 'Ecuador', abbreviation: 'EC', boCountryId: 54, lrId: 1357, isActive: false },
+  { name: 'Egypt', abbreviation: 'EG', boCountryId: 55, lrId: 1380, isActive: false },
+  { name: 'El Salvador', abbreviation: 'SV', boCountryId: 56, lrId: 1407, isActive: false },
+  { name: 'Equatorial Guinea', abbreviation: 'GQ', boCountryId: 57, lrId: 1422, isActive: false },
+  { name: 'Eritrea', abbreviation: 'ER', boCountryId: 58, lrId: 1430, isActive: false },
+  { name: 'Estonia', abbreviation: 'EE', boCountryId: 59, lrId: 1439, isActive: false },
+  { name: 'Ethiopia', abbreviation: 'ET', boCountryId: 60, lrId: 1455, isActive: false },
+  { name: 'Faroe Islands', abbreviation: 'FO', boCountryId: 63, lrId: 1470, isActive: false },
+  { name: 'Fiji', abbreviation: 'FJ', boCountryId: 64, lrId: 1480, isActive: false },
+  { name: 'Finland', abbreviation: 'FI', boCountryId: 65, lrId: 1486, isActive: false },
+  { name: 'France', abbreviation: 'FR', boCountryId: 66, lrId: 1493, isActive: false },
+  { name: 'French Guiana', abbreviation: 'GF', boCountryId: 67, lrId: 1516, isActive: false },
+  { name: 'French Polynesia', abbreviation: 'PF', boCountryId: 68, lrId: 1518, isActive: false },
+  { name: 'Gabon', abbreviation: 'GA', boCountryId: 70, lrId: 1529, isActive: false },
+  { name: 'Georgia', abbreviation: 'GE', boCountryId: 73, lrId: 1548, isActive: false },
+  { name: 'Germany', abbreviation: 'DE', boCountryId: 82, lrId: 1753, isActive: false },
+  { name: 'Ghana', abbreviation: 'GH', boCountryId: 83, lrId: 1770, isActive: false },
+  { name: 'Gibraltar', abbreviation: 'GI', boCountryId: 84, lrId: 1781, isActive: false },
+  { name: 'Greece', abbreviation: 'GR', boCountryId: 86, lrId: 1786, isActive: false },
+  { name: 'Greenland', abbreviation: 'GL', boCountryId: 87, lrId: 1839, isActive: false },
+  { name: 'Grenada', abbreviation: 'GD', boCountryId: 88, lrId: 1843, isActive: false },
+  { name: 'Guadeloupe', abbreviation: 'GP', boCountryId: 89, lrId: 1851, isActive: false },
+  { name: 'Guam', abbreviation: 'GU', boCountryId: 90, lrId: 1857, isActive: false },
+  { name: 'Guatemala', abbreviation: 'GT', boCountryId: 91, lrId: 1859, isActive: false },
+  { name: 'Guernsey', abbreviation: 'GK', boCountryId: 92, lrId: 1882, isActive: false },
+  { name: 'Guinea', abbreviation: 'GN', boCountryId: 93, lrId: 1893, isActive: false },
+  { name: 'Guinea-Bissau', abbreviation: 'GW', boCountryId: 94, lrId: 1928, isActive: false },
+  { name: 'Guyana', abbreviation: 'GY', boCountryId: 95, lrId: 1938, isActive: false },
+  { name: 'Haiti', abbreviation: 'HT', boCountryId: 96, lrId: 1949, isActive: false },
+  { name: 'Honduras', abbreviation: 'HN', boCountryId: 99, lrId: 1963, isActive: false },
+  { name: 'Hong Kong', abbreviation: 'HK', boCountryId: 100, lrId: 1982, isActive: false },
+  { name: 'Hungary', abbreviation: 'HU', boCountryId: 102, lrId: 1986, isActive: false },
+  { name: 'Iceland', abbreviation: 'IS', boCountryId: 103, lrId: 2027, isActive: false },
+  { name: 'India', abbreviation: 'IN', boCountryId: 104, lrId: 2065, isActive: false },
+  { name: 'Indonesia', abbreviation: 'ID', boCountryId: 105, lrId: 2101, isActive: false },
+  { name: 'Iraq', abbreviation: 'IQ', boCountryId: 107, lrId: 2162, isActive: false },
+  { name: 'Ireland', abbreviation: 'IE', boCountryId: 108, lrId: 2181, isActive: false },
+  { name: 'Israel', abbreviation: 'IL', boCountryId: 110, lrId: 2235, isActive: false },
+  { name: 'Italy', abbreviation: 'IT', boCountryId: 111, lrId: 2242, isActive: false },
+  { name: 'Jamaica', abbreviation: 'JM', boCountryId: 112, lrId: 2263, isActive: false },
+  { name: 'Japan', abbreviation: 'JP', boCountryId: 114, lrId: 2280, isActive: false },
+  { name: 'Jersey', abbreviation: 'JE', boCountryId: 116, lrId: 2330, isActive: false },
+  { name: 'Jordan', abbreviation: 'JO', boCountryId: 118, lrId: 2334, isActive: false },
+  { name: 'Kazakhstan', abbreviation: 'KZ', boCountryId: 120, lrId: 2349, isActive: false },
+  { name: 'Kenya', abbreviation: 'KE', boCountryId: 121, lrId: 2366, isActive: false },
+  { name: 'Kiribati', abbreviation: 'KI', boCountryId: 122, lrId: 2375, isActive: false },
+  { name: 'Kuwait', abbreviation: 'KW', boCountryId: 125, lrId: 2436, isActive: false },
+  { name: 'Kyrgyzstan', abbreviation: 'KG', boCountryId: 126, lrId: 2442, isActive: false },
+  { name: 'Latvia', abbreviation: 'LV', boCountryId: 128, lrId: 2470, isActive: false },
+  { name: 'Lebanon', abbreviation: 'LB', boCountryId: 129, lrId: 2504, isActive: false },
+  { name: 'Lesotho', abbreviation: 'LS', boCountryId: 130, lrId: 2510, isActive: false },
+  { name: 'Liberia', abbreviation: 'LR', boCountryId: 131, lrId: 2521, isActive: false },
+  { name: 'Liechtenstein', abbreviation: 'LI', boCountryId: 133, lrId: 2561, isActive: false },
+  { name: 'Lithuania', abbreviation: 'LT', boCountryId: 134, lrId: 2573, isActive: false },
+  { name: 'Luxembourg', abbreviation: 'LU', boCountryId: 135, lrId: 2628, isActive: false },
+  { name: 'Macau', abbreviation: 'MO', boCountryId: 136, lrId: 2632, isActive: false },
+  { name: 'Madagascar', abbreviation: 'MG', boCountryId: 138, lrId: 2758, isActive: false },
+  { name: 'Malawi', abbreviation: 'MW', boCountryId: 139, lrId: 2765, isActive: false },
+  { name: 'Malaysia', abbreviation: 'MY', boCountryId: 140, lrId: 2793, isActive: false },
+  { name: 'Maldives', abbreviation: 'MV', boCountryId: 141, lrId: 2809, isActive: false },
+  { name: 'Mali', abbreviation: 'ML', boCountryId: 142, lrId: 2830, isActive: false },
+  { name: 'Malta', abbreviation: 'MT', boCountryId: 143, lrId: 2839, isActive: false },
+  { name: 'Marshall Islands', abbreviation: 'MH', boCountryId: 145, lrId: 2843, isActive: false },
+  { name: 'Martinique', abbreviation: 'MQ', boCountryId: 146, lrId: 2877, isActive: false },
+  { name: 'Mauritania', abbreviation: 'MR', boCountryId: 147, lrId: 2879, isActive: false },
+  { name: 'Mauritius', abbreviation: 'MU', boCountryId: 148, lrId: 2893, isActive: false },
+  { name: 'Mayotte', abbreviation: 'TY', boCountryId: 149, lrId: 2906, isActive: false },
+  { name: 'Mexico', abbreviation: 'MX', boCountryId: 150, lrId: 2908, isActive: false },
+  { name: 'Micronesia, Federated States of', abbreviation: 'FM', boCountryId: 151, lrId: 2941, isActive: false },
+  { name: 'Monaco', abbreviation: 'MC', boCountryId: 154, lrId: 2961, isActive: false },
+  { name: 'Mongolia', abbreviation: 'MN', boCountryId: 155, lrId: 2966, isActive: false },
+  { name: 'Montserrat', abbreviation: 'MS', boCountryId: 156, lrId: 2988, isActive: false },
+  { name: 'Morocco', abbreviation: 'MA', boCountryId: 157, lrId: 2992, isActive: false },
+  { name: 'Mozambique', abbreviation: 'MZ', boCountryId: 158, lrId: 3032, isActive: false },
+  { name: 'Namibia', abbreviation: 'NA', boCountryId: 159, lrId: 3043, isActive: false },
+  { name: 'Nauru', abbreviation: 'NR', boCountryId: 160, lrId: 3057, isActive: false },
+  { name: 'Nepal', abbreviation: 'NP', boCountryId: 161, lrId: 3072, isActive: false },
+  { name: 'Netherlands', abbreviation: 'NL', boCountryId: 162, lrId: 3087, isActive: false },
+  { name: 'Netherlands Antilles', abbreviation: 'AN', boCountryId: 163, lrId: 3100, isActive: false },
+  { name: 'New Caledonia', abbreviation: 'NC', boCountryId: 164, lrId: 3102, isActive: false },
+  { name: 'New Zealand', abbreviation: 'NZ', boCountryId: 165, lrId: 3106, isActive: false },
+  { name: 'Nicaragua', abbreviation: 'NI', boCountryId: 166, lrId: 3212, isActive: false },
+  { name: 'Niger', abbreviation: 'NE', boCountryId: 167, lrId: 3230, isActive: false },
+  { name: 'Nigeria', abbreviation: 'NG', boCountryId: 168, lrId: 3239, isActive: false },
+  { name: 'Niue', abbreviation: 'NU', boCountryId: 169, lrId: 3277, isActive: false },
+  { name: 'Norfolk Island', abbreviation: 'NF', boCountryId: 170, lrId: 3279, isActive: false },
+  { name: 'Northern Mariana Islands', abbreviation: 'MP', boCountryId: 171, lrId: 3281, isActive: false },
+  { name: 'Norway', abbreviation: 'NO', boCountryId: 172, lrId: 3286, isActive: false },
+  { name: 'Oman', abbreviation: 'OM', boCountryId: 173, lrId: 3306, isActive: false },
+  { name: 'Pakistan', abbreviation: 'PK', boCountryId: 174, lrId: 3315, isActive: false },
+  { name: 'Palau', abbreviation: 'PW', boCountryId: 175, lrId: 3322, isActive: false },
+  { name: 'Panama', abbreviation: 'PA', boCountryId: 176, lrId: 3341, isActive: false },
+  { name: 'Papua New Guinea', abbreviation: 'PG', boCountryId: 177, lrId: 3352, isActive: false },
+  { name: 'Paraguay', abbreviation: 'PY', boCountryId: 178, lrId: 3373, isActive: false },
+  { name: 'Peru', abbreviation: 'PE', boCountryId: 179, lrId: 3392, isActive: false },
+  { name: 'Philippines', abbreviation: 'PH', boCountryId: 180, lrId: 3418, isActive: false },
+  { name: 'Poland', abbreviation: 'PL', boCountryId: 182, lrId: 3554, isActive: false },
+  { name: 'Portugal', abbreviation: 'PT', boCountryId: 183, lrId: 3571, isActive: false },
+  { name: 'Puerto Rico', abbreviation: 'PR', boCountryId: 184, lrId: 3592, isActive: false },
+  { name: 'Qatar', abbreviation: 'QA', boCountryId: 185, lrId: 3671, isActive: false },
+  { name: 'Reunion', abbreviation: 'RE', boCountryId: 186, lrId: 3681, isActive: false },
+  { name: 'Rwanda', abbreviation: 'RW', boCountryId: 189, lrId: 3815, isActive: false },
+  { name: 'Saint Kitts and Nevis', abbreviation: 'KN', boCountryId: 191, lrId: 3832, isActive: false },
+  { name: 'Saint Lucia', abbreviation: 'LC', boCountryId: 192, lrId: 3847, isActive: false },
+  { name: 'Saint Vincent and the Grenadines', abbreviation: 'VC', boCountryId: 194, lrId: 3862, isActive: false },
+  { name: 'Samoa', abbreviation: 'WS', boCountryId: 195, lrId: 3869, isActive: false },
+  { name: 'San Marino', abbreviation: 'SM', boCountryId: 196, lrId: 3881, isActive: false },
+  { name: 'Sao Tome and Principe', abbreviation: 'ST', boCountryId: 197, lrId: 3891, isActive: false },
+  { name: 'Saudi Arabia', abbreviation: 'SA', boCountryId: 198, lrId: 3894, isActive: false },
+  { name: 'Senegal', abbreviation: 'SN', boCountryId: 200, lrId: 3941, isActive: false },
+  { name: 'Seychelles', abbreviation: 'SC', boCountryId: 201, lrId: 3952, isActive: false },
+  { name: 'Sierra Leone', abbreviation: 'SL', boCountryId: 202, lrId: 3976, isActive: false },
+  { name: 'Singapore', abbreviation: 'SG', boCountryId: 204, lrId: 3986, isActive: false },
+  { name: 'Slovakia', abbreviation: 'SK', boCountryId: 205, lrId: 3988, isActive: false },
+  { name: 'Slovenia', abbreviation: 'SI', boCountryId: 206, lrId: 3997, isActive: false },
+  { name: 'Solomon Islands', abbreviation: 'SB', boCountryId: 207, lrId: 4145, isActive: false },
+  { name: 'Somalia', abbreviation: 'SO', boCountryId: 208, lrId: 4157, isActive: false },
+  { name: 'South Africa', abbreviation: 'ZA', boCountryId: 209, lrId: 4176, isActive: false },
+  { name: 'Spain', abbreviation: 'ES', boCountryId: 211, lrId: 4195, isActive: false },
+  { name: 'Sri Lanka', abbreviation: 'LK', boCountryId: 213, lrId: 4220, isActive: false },
+  { name: 'Sudan', abbreviation: 'SD', boCountryId: 214, lrId: 4231, isActive: false },
+  { name: 'Suriname', abbreviation: 'SR', boCountryId: 215, lrId: 4258, isActive: false },
+  { name: 'Swaziland', abbreviation: 'SZ', boCountryId: 217, lrId: 4278, isActive: false },
+  { name: 'Sweden', abbreviation: 'SE', boCountryId: 218, lrId: 4283, isActive: false },
+  { name: 'Switzerland', abbreviation: 'CH', boCountryId: 219, lrId: 4305, isActive: false },
+  { name: 'Taiwan', abbreviation: 'TW', boCountryId: 221, lrId: 4347, isActive: false },
+  { name: 'Tajikistan', abbreviation: 'TJ', boCountryId: 222, lrId: 4372, isActive: false },
+  { name: 'Thailand', abbreviation: 'TH', boCountryId: 224, lrId: 4402, isActive: false },
+  { name: 'Tokelau', abbreviation: 'TK', boCountryId: 227, lrId: 4487, isActive: false },
+  { name: 'Tonga', abbreviation: 'TO', boCountryId: 228, lrId: 4491, isActive: false },
+  { name: 'Tunisia', abbreviation: 'TN', boCountryId: 230, lrId: 4507, isActive: false },
+  { name: 'Turkey', abbreviation: 'TR', boCountryId: 231, lrId: 4531, isActive: false },
+  { name: 'Turkmenistan', abbreviation: 'TM', boCountryId: 232, lrId: 4613, isActive: false },
+  { name: 'Tuvalu', abbreviation: 'TV', boCountryId: 233, lrId: 4619, isActive: false },
+  { name: 'Uganda', abbreviation: 'UG', boCountryId: 234, lrId: 4621, isActive: false },
+  { name: 'Ukraine', abbreviation: 'UA', boCountryId: 235, lrId: 4667, isActive: false },
+  { name: 'United Arab Emirates', abbreviation: 'AE', boCountryId: 236, lrId: 4695, isActive: false },
+  { name: 'United Kingdom', abbreviation: 'GB', boCountryId: 237, lrId: 4702, isActive: false },
+  { name: 'Uruguay', abbreviation: 'UY', boCountryId: 238, lrId: 4852, isActive: false },
+  { name: 'Uzbekistan', abbreviation: 'UZ', boCountryId: 240, lrId: 4924, isActive: false },
+  { name: 'Vanuatu', abbreviation: 'VU', boCountryId: 241, lrId: 4939, isActive: false },
+  { name: 'Venezuela', abbreviation: 'VE', boCountryId: 242, lrId: 4946, isActive: false },
+  { name: 'Vietnam', abbreviation: 'VN', boCountryId: 243, lrId: 4972, isActive: false },
+  { name: 'Western Sahara', abbreviation: 'EH', boCountryId: 248, lrId: 5067, isActive: false },
+  { name: 'Yemen', abbreviation: 'YE', boCountryId: 249, lrId: 5069, isActive: false },
+  { name: 'Zambia', abbreviation: 'ZM', boCountryId: 251, lrId: 5092, isActive: false },
+  { name: 'Zimbabwe', abbreviation: 'ZW', boCountryId: 252, lrId: 5102, isActive: false },
+];
+
+
+===== FILE: apps\backend\prisma\seeds\data\states.data.ts =====
+export const statesData = [
+  { id: 1, name: 'Badakhshan', abbreviation: 'Badakhshan', countryId: 1, boStateId: 434, boLgdId: null, stateCode: 98, isActive: true },
+  { id: 2, name: 'Badghis', abbreviation: null, countryId: 1, boStateId: 435, boLgdId: null, stateCode: null, isActive: true },
+  { id: 3, name: 'Baghlan', abbreviation: null, countryId: 1, boStateId: 436, boLgdId: null, stateCode: null, isActive: true },
+  { id: 4, name: 'Balkh', abbreviation: null, countryId: 1, boStateId: 437, boLgdId: null, stateCode: null, isActive: true },
+  { id: 5, name: 'Bamian', abbreviation: null, countryId: 1, boStateId: 438, boLgdId: null, stateCode: null, isActive: true },
+  { id: 6, name: 'Farah', abbreviation: null, countryId: 1, boStateId: 439, boLgdId: null, stateCode: null, isActive: true },
+  { id: 7, name: 'Faryab', abbreviation: null, countryId: 1, boStateId: 440, boLgdId: null, stateCode: null, isActive: true },
+  { id: 8, name: 'Ghazni', abbreviation: null, countryId: 1, boStateId: 441, boLgdId: null, stateCode: null, isActive: true },
+  { id: 9, name: 'Ghowr', abbreviation: null, countryId: 1, boStateId: 442, boLgdId: null, stateCode: null, isActive: true },
+  { id: 10, name: 'Helmand', abbreviation: null, countryId: 1, boStateId: 443, boLgdId: null, stateCode: null, isActive: true },
+  { id: 11, name: 'Herat', abbreviation: null, countryId: 1, boStateId: 444, boLgdId: null, stateCode: null, isActive: true },
+  { id: 12, name: 'Jowzjan', abbreviation: null, countryId: 1, boStateId: 445, boLgdId: null, stateCode: null, isActive: true },
+  { id: 13, name: 'Kabol', abbreviation: null, countryId: 1, boStateId: 446, boLgdId: null, stateCode: null, isActive: true },
+  { id: 14, name: 'Kandahar', abbreviation: null, countryId: 1, boStateId: 447, boLgdId: null, stateCode: null, isActive: true },
+  { id: 15, name: 'Kapisa', abbreviation: null, countryId: 1, boStateId: 448, boLgdId: null, stateCode: null, isActive: true },
+  { id: 16, name: 'Konar', abbreviation: null, countryId: 1, boStateId: 449, boLgdId: null, stateCode: null, isActive: true },
+  { id: 17, name: 'Kondoz', abbreviation: null, countryId: 1, boStateId: 450, boLgdId: null, stateCode: null, isActive: true },
+  { id: 18, name: 'Laghman', abbreviation: null, countryId: 1, boStateId: 451, boLgdId: null, stateCode: null, isActive: true },
+  { id: 19, name: 'Lowgar', abbreviation: null, countryId: 1, boStateId: 452, boLgdId: null, stateCode: null, isActive: true },
+  { id: 20, name: 'Nangarhar', abbreviation: null, countryId: 1, boStateId: 453, boLgdId: null, stateCode: null, isActive: true },
+  { id: 21, name: 'Nimruz', abbreviation: null, countryId: 1, boStateId: 454, boLgdId: null, stateCode: null, isActive: true },
+  { id: 22, name: 'Oruzgan', abbreviation: null, countryId: 1, boStateId: 455, boLgdId: null, stateCode: null, isActive: true },
+  { id: 23, name: 'Paktia', abbreviation: null, countryId: 1, boStateId: 456, boLgdId: null, stateCode: null, isActive: true },
+  { id: 24, name: 'Paktika', abbreviation: null, countryId: 1, boStateId: 457, boLgdId: null, stateCode: null, isActive: true },
+  { id: 25, name: 'Parvan', abbreviation: null, countryId: 1, boStateId: 458, boLgdId: null, stateCode: null, isActive: true },
+  { id: 26, name: 'Samangan', abbreviation: null, countryId: 1, boStateId: 459, boLgdId: null, stateCode: null, isActive: true },
+  { id: 27, name: 'Sar-e Pol', abbreviation: null, countryId: 1, boStateId: 460, boLgdId: null, stateCode: null, isActive: true },
+  { id: 28, name: 'Takhar', abbreviation: null, countryId: 1, boStateId: 461, boLgdId: null, stateCode: null, isActive: true },
+  { id: 29, name: 'Vardak', abbreviation: null, countryId: 1, boStateId: 462, boLgdId: null, stateCode: null, isActive: true },
+  { id: 30, name: 'Zabol', abbreviation: null, countryId: 1, boStateId: 463, boLgdId: null, stateCode: null, isActive: true },
+  { id: 31, name: 'Berat', abbreviation: null, countryId: 2, boStateId: 465, boLgdId: null, stateCode: null, isActive: true },
+  { id: 32, name: 'Bulqize', abbreviation: null, countryId: 2, boStateId: 466, boLgdId: null, stateCode: null, isActive: true },
+  { id: 33, name: 'Delvine', abbreviation: null, countryId: 2, boStateId: 467, boLgdId: null, stateCode: null, isActive: true },
+  { id: 34, name: 'Devoll (Bilisht)', abbreviation: null, countryId: 2, boStateId: 468, boLgdId: null, stateCode: null, isActive: true },
+  { id: 35, name: 'Diber (Peshkopi)', abbreviation: null, countryId: 2, boStateId: 469, boLgdId: null, stateCode: null, isActive: true },
+  { id: 36, name: 'Durres', abbreviation: null, countryId: 2, boStateId: 470, boLgdId: null, stateCode: null, isActive: true },
+  { id: 37, name: 'Elbasan', abbreviation: null, countryId: 2, boStateId: 471, boLgdId: null, stateCode: null, isActive: true },
+  { id: 38, name: 'Fier', abbreviation: null, countryId: 2, boStateId: 472, boLgdId: null, stateCode: null, isActive: true },
+  { id: 39, name: 'Gjirokaster', abbreviation: null, countryId: 2, boStateId: 473, boLgdId: null, stateCode: null, isActive: true },
+  { id: 40, name: 'Gramsh', abbreviation: null, countryId: 2, boStateId: 474, boLgdId: null, stateCode: null, isActive: true },
+  { id: 41, name: 'Has (Krume)', abbreviation: null, countryId: 2, boStateId: 475, boLgdId: null, stateCode: null, isActive: true },
+  { id: 42, name: 'Kavaje', abbreviation: null, countryId: 2, boStateId: 476, boLgdId: null, stateCode: null, isActive: true },
+  { id: 43, name: 'Kolonje (Erseke)', abbreviation: null, countryId: 2, boStateId: 477, boLgdId: null, stateCode: null, isActive: true },
+  { id: 44, name: 'Korce', abbreviation: null, countryId: 2, boStateId: 478, boLgdId: null, stateCode: null, isActive: true },
+  { id: 45, name: 'Kruje', abbreviation: null, countryId: 2, boStateId: 479, boLgdId: null, stateCode: null, isActive: true },
+  { id: 46, name: 'Kucove', abbreviation: null, countryId: 2, boStateId: 480, boLgdId: null, stateCode: null, isActive: true },
+  { id: 47, name: 'Kukes', abbreviation: null, countryId: 2, boStateId: 481, boLgdId: null, stateCode: null, isActive: true },
+  { id: 48, name: 'Kurbin', abbreviation: null, countryId: 2, boStateId: 482, boLgdId: null, stateCode: null, isActive: true },
+  { id: 49, name: 'Lezhe', abbreviation: null, countryId: 2, boStateId: 483, boLgdId: null, stateCode: null, isActive: true },
+  { id: 50, name: 'Librazhd', abbreviation: null, countryId: 2, boStateId: 484, boLgdId: null, stateCode: null, isActive: true },
+  { id: 51, name: 'Lushnje', abbreviation: null, countryId: 2, boStateId: 485, boLgdId: null, stateCode: null, isActive: true },
+  { id: 52, name: 'Malesi e Madhe (Koplik)', abbreviation: null, countryId: 2, boStateId: 486, boLgdId: null, stateCode: null, isActive: true },
+  { id: 53, name: 'Mallakaster (Ballsh)', abbreviation: null, countryId: 2, boStateId: 487, boLgdId: null, stateCode: null, isActive: true },
+  { id: 54, name: 'Mat (Burrel)', abbreviation: null, countryId: 2, boStateId: 488, boLgdId: null, stateCode: null, isActive: true },
+  { id: 55, name: 'Mirdite (Rreshen)', abbreviation: null, countryId: 2, boStateId: 489, boLgdId: null, stateCode: null, isActive: true },
+  { id: 56, name: 'Peqin', abbreviation: null, countryId: 2, boStateId: 490, boLgdId: null, stateCode: null, isActive: true },
+  { id: 57, name: 'Permet', abbreviation: null, countryId: 2, boStateId: 491, boLgdId: null, stateCode: null, isActive: true },
+  { id: 58, name: 'Pogradec', abbreviation: null, countryId: 2, boStateId: 492, boLgdId: null, stateCode: null, isActive: true },
+  { id: 59, name: 'Puke', abbreviation: null, countryId: 2, boStateId: 493, boLgdId: null, stateCode: null, isActive: true },
+  { id: 60, name: 'Sarande', abbreviation: null, countryId: 2, boStateId: 494, boLgdId: null, stateCode: null, isActive: true },
+  { id: 61, name: 'Shkoder', abbreviation: null, countryId: 2, boStateId: 495, boLgdId: null, stateCode: null, isActive: true },
+  { id: 62, name: 'Skrapar (Corovode)', abbreviation: null, countryId: 2, boStateId: 496, boLgdId: null, stateCode: null, isActive: true },
+  { id: 63, name: 'Tepelene', abbreviation: null, countryId: 2, boStateId: 497, boLgdId: null, stateCode: null, isActive: true },
+  { id: 64, name: 'Tirane (Tirana)', abbreviation: null, countryId: 2, boStateId: 498, boLgdId: null, stateCode: null, isActive: true },
+  { id: 65, name: 'Tirane (Tirana)', abbreviation: null, countryId: 2, boStateId: 499, boLgdId: null, stateCode: null, isActive: true },
+  { id: 66, name: 'Tropoje (Bajram Curri)', abbreviation: null, countryId: 2, boStateId: 500, boLgdId: null, stateCode: null, isActive: true },
+  { id: 67, name: 'Vlore', abbreviation: null, countryId: 2, boStateId: 501, boLgdId: null, stateCode: null, isActive: true },
+  { id: 68, name: 'Adrar', abbreviation: null, countryId: 3, boStateId: 503, boLgdId: null, stateCode: null, isActive: true },
+  { id: 69, name: 'Ain Defla', abbreviation: null, countryId: 3, boStateId: 504, boLgdId: null, stateCode: null, isActive: true },
+  { id: 70, name: 'Ain Temouchent', abbreviation: null, countryId: 3, boStateId: 505, boLgdId: null, stateCode: null, isActive: true },
+  { id: 71, name: 'Alger', abbreviation: null, countryId: 3, boStateId: 506, boLgdId: null, stateCode: null, isActive: true },
+  { id: 72, name: 'Annaba', abbreviation: null, countryId: 3, boStateId: 507, boLgdId: null, stateCode: null, isActive: true },
+  { id: 73, name: 'Batna', abbreviation: null, countryId: 3, boStateId: 508, boLgdId: null, stateCode: null, isActive: true },
+  { id: 74, name: 'Bechar', abbreviation: null, countryId: 3, boStateId: 509, boLgdId: null, stateCode: null, isActive: true },
+  { id: 75, name: 'Bejaia', abbreviation: null, countryId: 3, boStateId: 510, boLgdId: null, stateCode: null, isActive: true },
+  { id: 76, name: 'Biskra', abbreviation: null, countryId: 3, boStateId: 511, boLgdId: null, stateCode: null, isActive: true },
+  { id: 77, name: 'Blida', abbreviation: null, countryId: 3, boStateId: 512, boLgdId: null, stateCode: null, isActive: true },
+  { id: 78, name: 'Bordj Bou Arreridj', abbreviation: null, countryId: 3, boStateId: 513, boLgdId: null, stateCode: null, isActive: true },
+  { id: 79, name: 'Bouira', abbreviation: null, countryId: 3, boStateId: 514, boLgdId: null, stateCode: null, isActive: true },
+  { id: 80, name: 'Boumerdes', abbreviation: null, countryId: 3, boStateId: 515, boLgdId: null, stateCode: null, isActive: true },
+  { id: 81, name: 'Chlef', abbreviation: null, countryId: 3, boStateId: 516, boLgdId: null, stateCode: null, isActive: true },
+  { id: 82, name: 'Constantine', abbreviation: null, countryId: 3, boStateId: 517, boLgdId: null, stateCode: null, isActive: true },
+  { id: 83, name: 'Djelfa', abbreviation: null, countryId: 3, boStateId: 518, boLgdId: null, stateCode: null, isActive: true },
+  { id: 84, name: 'El Bayadh', abbreviation: null, countryId: 3, boStateId: 519, boLgdId: null, stateCode: null, isActive: true },
+  { id: 85, name: 'El Oued', abbreviation: null, countryId: 3, boStateId: 520, boLgdId: null, stateCode: null, isActive: true },
+  { id: 86, name: 'El Tarf', abbreviation: null, countryId: 3, boStateId: 521, boLgdId: null, stateCode: null, isActive: true },
+  { id: 87, name: 'Ghardaia', abbreviation: null, countryId: 3, boStateId: 522, boLgdId: null, stateCode: null, isActive: true },
+  { id: 88, name: 'Guelma', abbreviation: null, countryId: 3, boStateId: 523, boLgdId: null, stateCode: null, isActive: true },
+  { id: 89, name: 'Illizi', abbreviation: null, countryId: 3, boStateId: 524, boLgdId: null, stateCode: null, isActive: true },
+  { id: 90, name: 'Jijel', abbreviation: null, countryId: 3, boStateId: 525, boLgdId: null, stateCode: null, isActive: true },
+  { id: 91, name: 'Khenchela', abbreviation: null, countryId: 3, boStateId: 526, boLgdId: null, stateCode: null, isActive: true },
+  { id: 92, name: 'Laghouat', abbreviation: null, countryId: 3, boStateId: 527, boLgdId: null, stateCode: null, isActive: true },
+  { id: 93, name: 'M\'Sila', abbreviation: null, countryId: 3, boStateId: 528, boLgdId: null, stateCode: null, isActive: true },
+  { id: 94, name: 'Mascara', abbreviation: null, countryId: 3, boStateId: 529, boLgdId: null, stateCode: null, isActive: true },
+  { id: 95, name: 'Medea', abbreviation: null, countryId: 3, boStateId: 530, boLgdId: null, stateCode: null, isActive: true },
+  { id: 96, name: 'Mila', abbreviation: null, countryId: 3, boStateId: 531, boLgdId: null, stateCode: null, isActive: true },
+  { id: 97, name: 'Mostaganem', abbreviation: null, countryId: 3, boStateId: 532, boLgdId: null, stateCode: null, isActive: true },
+  { id: 98, name: 'Naama', abbreviation: null, countryId: 3, boStateId: 533, boLgdId: null, stateCode: null, isActive: true },
+  { id: 99, name: 'Oran', abbreviation: null, countryId: 3, boStateId: 534, boLgdId: null, stateCode: null, isActive: true }
+];
+
+===== FILE: apps\backend\prisma\seeds\master-tables.seed.ts =====
+import { PrismaClient } from '@prisma/client';
+
+export async function seedMasterTables(prisma: PrismaClient) {
+  console.log('ðŸ“Œ Seeding master_tables...');
+
+  /**
+   * IMPORTANT:
+   * Since your runtime reads master_tables and uses Prisma (NOT raw SQL),
+   * all *_column fields must be PRISMA FIELD NAMES (camelCase),
+   * not DB column names.
+   */
+
+  const masterTables = [
+    // -----------------------
+    // Geography
+    // -----------------------
+    {
+      master_name: 'Country Master',
+      master_code: 'COUNTRY',
+      description: 'List of all countries',
+      table_name: 'm_countries',
+      value_column: 'id',
+      label_column: 'name',
+      secondary_label: 'abbreviation',
+      label_template: '{name} ({abbreviation})',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/countries',
+    },
+    {
+      master_name: 'State Master',
+      master_code: 'STATE',
+      description: 'List of all states',
+      table_name: 'm_states',
+      value_column: 'id',
+      label_column: 'name',
+      secondary_label: 'abbreviation',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      parent_column: 'countryId',
+      api_endpoint: '/api/master/states',
+    },
+    {
+      master_name: 'District Master',
+      master_code: 'DISTRICT',
+      description: 'List of all districts',
+      table_name: 'm_districts',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      parent_column: 'stateId',
+      api_endpoint: '/api/master/districts',
+    },
+    {
+      master_name: 'Block Master',
+      master_code: 'BLOCK',
+      description: 'List of all blocks',
+      table_name: 'm_blocks',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      parent_column: 'districtId',
+      api_endpoint: '/api/master/blocks',
+    },
+    {
+      master_name: 'Tehsil Master',
+      master_code: 'TEHSIL',
+      description: 'List of all tehsils/sub-districts',
+      table_name: 'm_tehsils',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      parent_column: 'districtId',
+      api_endpoint: '/api/master/tehsils',
+    },
+    {
+      master_name: 'Village Master',
+      master_code: 'VILLAGE',
+      description: 'List of all villages',
+      table_name: 'm_villages',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      parent_column: 'tehsilId',
+      api_endpoint: '/api/master/villages',
+    },
+
+    // -----------------------
+    // Department / Issuer / Docs / Forms
+    // -----------------------
+    {
+      master_name: 'Department Master',
+      master_code: 'DEPARTMENT',
+      description: 'List of all departments',
+      table_name: 'm_departments',
+      value_column: 'id',
+      label_column: 'name',
+      secondary_label: 'abbreviation',
+      label_template: '{name} ({abbreviation})',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/departments',
+    },
+    {
+      master_name: 'Issuer Master',
+      master_code: 'ISSUER',
+      description: 'List of all document issuers',
+      table_name: 'm_issuers',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isIssuerActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/issuers',
+    },
+    {
+      master_name: 'Document Type Master',
+      master_code: 'DOCUMENT_TYPE',
+      description: 'List of all document types',
+      table_name: 'm_documenttypes',
+      value_column: 'id',
+      label_column: 'name',
+      secondary_label: 'abbreviation',
+      is_active_column: 'isDocActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/document-types',
+    },
+    {
+      master_name: 'Form Type Master',
+      master_code: 'FORM_TYPE',
+      description: 'List of all form types',
+      table_name: 'm_fb_form_types',
+      value_column: 'id',
+      label_column: 'name',
+      secondary_label: 'abbr',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/form-types',
+    },
+
+    // -----------------------
+    // Masters coming from BO master_tables (and present in Prisma schema)
+    // -----------------------
+
+    // Organisation Nature
+    {
+      master_name: 'Organisation Nature Master',
+      master_code: 'ORG_NATURE',
+      description: 'Organisation Nature (General)',
+      table_name: 'm_organisation_nature',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/organisation-nature',
+    },
+    {
+      master_name: 'Organisation Nature (Education) Master',
+      master_code: 'ORG_NATURE_EDU',
+      description: 'Organisation Nature for Higher/Medical Education',
+      table_name: 'm_organisation_nature',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'educationIsActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/organisation-nature-education',
+    },
+
+    // Current Landuse
+    {
+      master_name: 'Current Landuse Master',
+      master_code: 'CURRENT_LANDUSE',
+      description: 'Current Land Use options',
+      table_name: 'm_current_landuse',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/current-landuse',
+    },
+
+    // Labour
+    {
+      master_name: 'Labour Factory Type Master',
+      master_code: 'LABOUR_FACTORY_TYPE',
+      description: 'Labour Factory Type Master',
+      table_name: 'm_labour_factory_type_master',
+      value_column: 'id',
+      label_column: 'factoryType',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'factoryType ASC',
+      api_endpoint: '/api/master/labour-factory-type',
+    },
+    {
+      master_name: 'Labour Factory Sec85 Master',
+      master_code: 'LABOUR_SEC85',
+      description: 'Labour Factory Section 85 Master',
+      table_name: 'm_labour_factory_sec85',
+      value_column: 'id',
+      label_column: 'specialProvisionName',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'specialProvisionName ASC',
+      api_endpoint: '/api/master/labour-sec85',
+    },
+
+    // UJS
+    {
+      master_name: 'UJS Division Master',
+      master_code: 'UJS_DIVISION',
+      description: 'UJS Division Master',
+      table_name: 'm_ujs_divisions',
+      value_column: 'divisionId',
+      label_column: 'officeName',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'officeName ASC',
+      api_endpoint: '/api/master/ujs-divisions',
+    },
+
+    // UPCL - Supply Category
+    {
+      master_name: 'UPCL Supply Category Master',
+      master_code: 'UPCL_SUPPLY_CATEGORY',
+      description: 'UPCL Supply Categories',
+      table_name: 'm_upcl_supply_categories',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      api_endpoint: '/api/master/upcl-supply-categories',
+    },
+    {
+      master_name: 'UPCL Supply Subcategory Master',
+      master_code: 'UPCL_SUPPLY_SUBCATEGORY',
+      description: 'UPCL Supply Subcategories',
+      table_name: 'm_upcl_supply_subcategories',
+      value_column: 'id',
+      label_column: 'name',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'name ASC',
+      parent_column: 'supplyCategoryId',
+      api_endpoint: '/api/master/upcl-supply-subcategories',
+    },
+
+    // UPCL - Voltage
+    {
+      master_name: 'UPCL Voltage Master',
+      master_code: 'UPCL_VOLTAGE',
+      description: 'UPCL Voltage Master',
+      table_name: 'm_upcl_voltage',
+      value_column: 'id',
+      label_column: 'voltageDesc',
+      secondary_label: 'voltageGroup',
+      label_template: '{voltageGroup}-{voltageDesc}',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'voltageGroup ASC',
+      api_endpoint: '/api/master/upcl-voltage',
+    },
+
+    // UPCL - Division/Subdivision (same table)
+    {
+      master_name: 'UPCL Division Master',
+      master_code: 'UPCL_DIVISION',
+      description: 'UPCL Division Master',
+      table_name: 'm_upcl_division_subdivisions',
+      value_column: 'divisionId',
+      label_column: 'divisionName',
+      secondary_label: 'divisionCode',
+      label_template: '{divisionCode} - {divisionName}',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'divisionCode ASC',
+      api_endpoint: '/api/master/upcl-divisions',
+    },
+    {
+      master_name: 'UPCL Subdivision Master',
+      master_code: 'UPCL_SUBDIVISION',
+      description: 'UPCL Subdivision Master',
+      table_name: 'm_upcl_division_subdivisions',
+      value_column: 'subdivisionId',
+      label_column: 'subdivisionName',
+      secondary_label: 'subdivisionCode',
+      label_template: '{subdivisionCode} - {subdivisionName}',
+      is_active_column: 'isActive',
+      is_active_value: 'true',
+      default_order_by: 'subdivisionCode ASC',
+      parent_column: 'divisionId',
+      api_endpoint: '/api/master/upcl-subdivisions',
+    },
+
+    // -----------------------
+    // NIC / HSN (FIXED: Prisma field names)
+    // -----------------------
+    {
+      master_name: 'NIC Code Master',
+      master_code: 'NIC_CODE',
+      description: 'List of NIC codes',
+      table_name: 'm_nic_code',
+      value_column: 'ID',
+      label_column: 'Description',
+      secondary_label: 'NIC_V_Digit',
+      label_template: '{NIC_V_Digit} - {Description}',
+      is_active_column: 'is_active',
+      is_active_value: 'Y',
+      default_order_by: '"NIC_V_Digit" ASC',
+      api_endpoint: '/master/nic-codes',
+    },
+    {
+      master_name: 'HSN Code Master',
+      master_code: 'HSN_CODE',
+      description: 'List of HSN codes',
+      table_name: 'm_hsn_code',
+      value_column: 'hsn_code',
+      label_column: 'comodity_name',
+      secondary_label: 'hsn_code',
+      label_template: '{hsn_code} - {comodity_name}',
+      is_active_column: 'is_active',
+      is_active_value: 'Y',
+      default_order_by: 'hsn_code ASC',
+      api_endpoint: '/master/hsn-codes',
+    },
+  ];
+
+  // 1) Upsert all masters (parent_master_id will be set later)
+  for (const master of masterTables) {
+    await prisma.master_tables.upsert({
+      where: { master_code: master.master_code },
+      update: master,
+      create: master,
+    });
+    console.log(`  âœ“ Created/Updated ${master.master_name}`);
+  }
+
+  // 2) Setup parent-child relationships (same as your existing logic + UPCL supply)
+  const relationships = [
+    { child: 'STATE', parent: 'COUNTRY' },
+    { child: 'DISTRICT', parent: 'STATE' },
+    { child: 'BLOCK', parent: 'DISTRICT' },
+    { child: 'TEHSIL', parent: 'DISTRICT' },
+    { child: 'VILLAGE', parent: 'TEHSIL' },
+    { child: 'UPCL_SUPPLY_SUBCATEGORY', parent: 'UPCL_SUPPLY_CATEGORY' },
+    { child: 'UPCL_SUBDIVISION', parent: 'UPCL_DIVISION' },
+  ];
+
+  for (const rel of relationships) {
+    const parent = await prisma.master_tables.findUnique({
+      where: { master_code: rel.parent },
+    });
+
+    if (parent) {
+      await prisma.master_tables.update({
+        where: { master_code: rel.child },
+        data: { parent_master_id: parent.id },
+      });
+      console.log(`  âœ“ Linked ${rel.child} â†’ ${rel.parent}`);
+    }
+  }
+
+  console.log('âœ… master_tables seeded successfully!');
+}
+
+
+===== FILE: apps\backend\prisma\seeds\state.seed.ts =====
+import { PrismaClient } from '@prisma/client';
+import { statesData } from './data/states.data';
+
+export async function seedStates(prisma: PrismaClient) {
+  try {
+    // Get all existing country IDs from database
+    const countries = await prisma.country.findMany({
+      select: { id: true },
+    });
+
+    const validCountryIds = new Set(countries.map(c => c.id));
+    console.log(`  ðŸ“Š Found ${validCountryIds.size} valid country IDs in database`);
+
+    // Filter states to only include those with valid country references
+    const validStates = statesData.filter(state => {
+      if (!validCountryIds.has(state.countryId)) {
+        console.warn(`  âš ï¸  Skipping state "${state.name}" - invalid countryId: ${state.countryId}`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`  âœ“ Filtered: ${validStates.length} valid states out of ${statesData.length}`);
+
+    if (validStates.length === 0) {
+      console.log('  âš ï¸  No valid states found to seed!');
+      return;
+    }
+
+    // Group states by countryId for batch insertion
+    const statesByCountry: { [key: number]: typeof validStates } = {};
+
+    for (const state of validStates) {
+      if (!statesByCountry[state.countryId]) {
+        statesByCountry[state.countryId] = [];
+      }
+      statesByCountry[state.countryId].push(state);
+    }
+
+    let totalCreated = 0;
+    let batchCount = 0;
+
+    for (const countryId of Object.keys(statesByCountry)) {
+      try {
+        const result = await prisma.state.createMany({
+          data: statesByCountry[parseInt(countryId)],
+          skipDuplicates: true,
+        });
+        totalCreated += result.count;
+        batchCount++;
+      } catch (batchError: any) {
+        console.error(`  âŒ Error seeding states for countryId ${countryId}:`, batchError.message);
+        // Continue with next batch instead of failing entirely
+      }
+    }
+
+    console.log(`  âœ… Seeded ${totalCreated} states from ${batchCount} batches`);
+  } catch (error: any) {
+    console.error('  âŒ State seeding failed:', error.message);
+    if (error.meta) {
+      console.error('  ðŸ“ Meta info:', error.meta);
+    }
+    throw error;
+  }
+}
+
+===== FILE: apps\backend\src\modules\master\formBuilder\dto\save-field-options.dto.ts =====
+import { IsArray, IsEnum, IsInt, IsObject, IsOptional, ValidateIf } from 'class-validator';
+import { Type } from 'class-transformer';
+import { OptionSourceType } from '@prisma/client';
+
+export class SaveFieldOptionsDto {
+  @IsEnum(OptionSourceType)
+  sourceType: OptionSourceType;
+
+  // MASTER config (FK)
+  @ValidateIf(o => o.sourceType === OptionSourceType.MASTER)
+  @Type(() => Number)
+  @IsInt()
+  masterTableId: number;
+
+  // STATIC config
+  @ValidateIf(o => o.sourceType === OptionSourceType.STATIC)
+  @IsArray()
+  staticOptions: Array<{ label: string; value: string | number; disabled?: boolean; order?: number }>;
+
+  // optional cascading mapping
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  parentBuilderFieldId?: number;
+}
+
+===== FILE: apps\backend\src\modules\master\formBuilder\form-builder.service.ts =====
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma.service';
+import { Prisma, OptionSourceType, YnFlag } from '@prisma/client';
+import { CreateBuilderFieldDto } from './dto/create-builder-field.dto';
+import { UpdateBuilderFieldDto } from './dto/update-builder-field.dto';
+import { ReorderBuilderFieldsDto } from './dto/reorder-builder-fields.dto';
+import { SaveFieldOptionsDto } from './dto/save-field-options.dto';
+import { CreateAddMoreGroupDto } from './dto/create-addmore-group.dto';
+import { ListAddMoreGroupsQueryDto } from './dto/list-addmore-groups.dto';
+import { SetAddMoreColumnsDto } from './dto/set-addmore-columns.dto';
+import { CreateRuleDto, UpdateRuleDto } from './dto/form-rule.dto';
+
+// OLD DTOs
+import { AddPageDto, UpdatePageDto, SavePageCategoriesDto, CreateFormMappingDto } from './dto';
+
+type PreviewOption = { label: string; value: string | number; disabled?: boolean; order?: number };
+
+@Injectable()
+export class FormBuilderService {
+  constructor(private readonly prisma: PrismaService) { }
+
+  // =========================================================
+  // âœ… LEGACY METHODS (Existing Admin UI)
+  // =========================================================
+  async getServicesWithFormsAndPages(departmentId: number) {
+    const services = await this.prisma.service.findMany({
+      where: { department_id: departmentId, isActive: true },
+      select: { service_id: true, service_name: true },
+      orderBy: { id: 'asc' },
+    });
+
+    const rawServiceIds = (services ?? []).map((s) => s.service_id).filter(Boolean) as string[];
+
+    // âœ… Normalize: include both "190.0" and "190" style keys
+    const serviceIds = Array.from(
+      new Set(
+        rawServiceIds.flatMap((id) => {
+          const trimmed = String(id).trim();
+          const noDotZero = trimmed.replace(/\.0$/, '');
+          return [trimmed, noDotZero];
+        }),
+      ),
+    );
+
+    // âœ… INCLUDE GLOBAL mappings (department_id=0) for any department selection
+    // âœ… Prefer dept-specific mappings over GLOBAL if both exist for same (service_id, form_type_id)
+    const mappings = await this.prisma.formMapping.findMany({
+      where: {
+        OR: [{ department_id: departmentId }, { department_id: 0 }],
+        service_id: { in: serviceIds },
+        is_active: YnFlag.Y,
+      },
+      orderBy: [{ department_id: 'desc' }, { modified: 'desc' }, { created: 'desc' }, { id: 'desc' }],
+      select: {
+        department_id: true,
+        service_id: true,
+        form_type_id: true,
+        form_name: true,
+        form_code: true,
+      },
+    });
+
+    const pages = await this.prisma.formPageMaster.findMany({
+      where: { service_id: { in: serviceIds }, is_active: YnFlag.Y },
+      select: { service_id: true, form_id: true },
+    });
+
+    const pageCount = new Map<string, number>();
+    for (const p of pages) {
+      const k = `${p.service_id}__${p.form_id}`;
+      pageCount.set(k, (pageCount.get(k) ?? 0) + 1);
+    }
+
+    const byService = new Map<string, any[]>();
+    const seen = new Set<string>(); // `${service_id}__${form_type_id}`
+
+    for (const m of mappings) {
+      const sid = String(m.service_id).trim();
+      const uniqueKey = `${sid}__${m.form_type_id}`;
+
+      // dept-specific comes first (ordered), so first wins
+      if (seen.has(uniqueKey)) continue;
+      seen.add(uniqueKey);
+
+      if (!byService.has(sid)) byService.set(sid, []);
+      const k = `${sid}__${m.form_type_id}`;
+
+      byService.get(sid)!.push({
+        formTypeId: m.form_type_id,
+        formName: m.form_name,
+        formCode: m.form_code,
+        pagesCount: pageCount.get(k) ?? 0,
+      });
+    }
+
+    return services.map((s, idx) => {
+      const sid = String(s.service_id).trim();
+      const sidNoDotZero = sid.replace(/\.0$/, '');
+      return {
+        id: idx + 1,
+        serviceId: sid,
+        serviceName: s.service_name,
+        forms: byService.get(sid) ?? byService.get(sidNoDotZero) ?? [],
+      };
+    });
+  }
+
+  async previewFormCode(serviceId: string, formTypeId: number) {
+    const last = await this.prisma.formMapping.aggregate({
+      where: { service_id: serviceId },
+      _max: { id: true },
+    });
+    const nextId = (last._max.id ?? 0) + 1;
+    const twoDigit = String(formTypeId).padStart(2, '0');
+    const formCode = `UK-SR-${serviceId}_${twoDigit}-FRM-${String(nextId).padStart(2, '0')}`;
+    return { formCode };
+  }
+
+  async createFormMapping(serviceId: string, dto: CreateFormMappingDto) {
+    const service = await this.prisma.service.findFirst({
+      where: { service_id: serviceId },
+      select: { department_id: true },
+    });
+
+    if (!service || !service.department_id) {
+      throw new NotFoundException(`Service not found or department missing for serviceId: ${serviceId}`);
+    }
+
+    const departmentId = service.department_id;
+
+    const exists = await this.prisma.formMapping.findFirst({
+      where: {
+        department_id: departmentId,
+        service_id: serviceId,
+        form_type_id: dto.formTypeId,
+        is_active: YnFlag.Y,
+      },
+    });
+
+    if (exists) throw new BadRequestException('This Form Type is already mapped to this Service.');
+
+    return this.prisma.formMapping.create({
+      data: {
+        department_id: departmentId,
+        service_id: serviceId,
+        form_type_id: dto.formTypeId,
+        form_name: dto.formName,
+        form_code: dto.formCode,
+        form_version: dto.formVersion ?? null,
+        is_active: YnFlag.Y,
+        created: new Date(),
+      },
+    });
+  }
+
+  async softDeleteFormMapping(serviceId: string, formTypeId: number) {
+    await this.prisma.formMapping.updateMany({
+      where: { service_id: serviceId, form_type_id: formTypeId, is_active: YnFlag.Y },
+      data: { is_active: YnFlag.N, modified: new Date() },
+    });
+    return { success: true };
+  }
+
+  async getPages(serviceId: string, formTypeId: number) {
+    return this.prisma.formPageMaster.findMany({
+      where: { service_id: serviceId, form_id: formTypeId, is_active: YnFlag.Y },
+      orderBy: { preference: 'asc' },
+    });
+  }
+
+  async addPage(serviceId: string, formTypeId: number, dto: AddPageDto) {
+    const max = await this.prisma.formPageMaster.aggregate({
+      where: { service_id: serviceId, form_id: formTypeId, is_active: YnFlag.Y },
+      _max: { preference: true },
+    });
+    const nextPref = (max._max.preference ?? 0) + 1;
+
+    return this.prisma.formPageMaster.create({
+      data: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        page_name: dto.pageName ?? '',
+        name_in_hindi: dto.nameInHindi ?? null,
+        form_code: dto.formCode ?? null,
+        preference: nextPref,
+        is_active: YnFlag.Y,
+        created: new Date(),
+      },
+    });
+  }
+
+  async updatePage(pageId: number, dto: UpdatePageDto) {
+    const page = await this.prisma.formPageMaster.findUnique({ where: { id: pageId } });
+    if (!page) throw new NotFoundException('Page not found.');
+
+    return this.prisma.formPageMaster.update({
+      where: { id: pageId },
+      data: {
+        page_name: dto.pageName ?? undefined,
+        name_in_hindi: dto.nameInHindi ?? undefined,
+        modified: new Date(),
+      },
+    });
+  }
+
+  async softDeletePage(pageId: number) {
+    await this.prisma.formPageMaster.update({
+      where: { id: pageId },
+      data: { is_active: YnFlag.N, modified: new Date() },
+    });
+
+    await this.prisma.formPageCategoryMapping.updateMany({
+      where: { page_id: pageId, is_active: YnFlag.Y },
+      data: { is_active: YnFlag.N },
+    });
+
+    return { success: true };
+  }
+
+  async getPageCategories(pageId: number) {
+    return this.prisma.formPageCategoryMapping.findMany({
+      where: { page_id: pageId, is_active: YnFlag.Y },
+      orderBy: { preference: 'asc' },
+    });
+  }
+
+  async savePageCategories(pageId: number, dto: SavePageCategoriesDto) {
+    const page = await this.prisma.formPageMaster.findUnique({ where: { id: pageId } });
+    if (!page) throw new NotFoundException('Page not found.');
+
+    await this.prisma.$transaction([
+      this.prisma.formPageCategoryMapping.updateMany({
+        where: { page_id: pageId, is_active: YnFlag.Y },
+        data: { is_active: YnFlag.N },
+      }),
+      ...(dto.categories ?? []).map((c, idx) =>
+        this.prisma.formPageCategoryMapping.create({
+          data: {
+            page_id: pageId,
+            category_id: c.categoryId,
+            preference: idx + 1,
+            help_text: c.helpText ?? null,
+            is_active: YnFlag.Y,
+          },
+        }),
+      ),
+    ]);
+
+    return { success: true };
+  }
+
+  // =========================================================
+  // âœ… NEW: meta for builder header + preview
+  // =========================================================
+  async getBuilderMeta(serviceId: string, formTypeId: number) {
+    const [svc, ft] = await Promise.all([
+      this.prisma.service.findFirst({
+        where: { service_id: serviceId },
+        select: { service_id: true, service_name: true },
+      }),
+      this.prisma.formType.findUnique({
+        where: { id: formTypeId },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    return {
+      serviceId: String(serviceId),
+      serviceName: svc?.service_name ?? null,
+      formTypeId,
+      formTypeName: ft?.name ?? null,
+    };
+  }
+
+  // =========================================================
+  // âœ… NEW: Preview definition (Generate Form)
+  // =========================================================
+
+  // =========================================================
+  // âœ… NEW: Master table options helper (supports cascading via parent_column)
+  // =========================================================
+  private async loadMasterOptions(masterTableId: number, parentValue?: any): Promise<PreviewOption[]> {
+    const mt = await this.prisma.master_tables.findUnique({
+      where: { id: masterTableId },
+      select: {
+        id: true,
+        table_name: true,
+        schema_name: true,
+        value_column: true,
+        label_column: true,
+        secondary_label: true,
+        label_template: true,
+        is_active_column: true,
+        is_active_value: true,
+        default_filter: true,
+        default_order_by: true,
+        parent_column: true,
+      },
+    });
+
+    if (!mt) return [];
+
+    const cleanIdent = (v: string) => String(v ?? '').replace(/"/g, '').trim();
+    const isSafeIdent = (v: string) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(v);
+
+    const schema = cleanIdent(mt.schema_name ?? 'public');
+    const table = cleanIdent(mt.table_name ?? '');
+    const valueCol = cleanIdent(mt.value_column ?? '');
+    const labelCol = cleanIdent(mt.label_column ?? '');
+    const secondaryLabel = mt.secondary_label ? cleanIdent(mt.secondary_label) : null;
+
+    const activeCol = mt.is_active_column ? cleanIdent(mt.is_active_column) : null;
+    const activeVal = mt.is_active_value ? String(mt.is_active_value) : null;
+
+    const parentCol = mt.parent_column ? cleanIdent(mt.parent_column) : null;
+
+    if (!schema || !table || !valueCol || !labelCol) return [];
+    if (![schema, table, valueCol, labelCol].every(isSafeIdent)) return [];
+    if (activeCol && !isSafeIdent(activeCol)) return [];
+    if (secondaryLabel && !isSafeIdent(secondaryLabel)) return [];
+    if (parentCol && !isSafeIdent(parentCol)) return [];
+
+    const whereClauses: string[] = [];
+    const params: any[] = [];
+
+    if (activeCol && activeVal) {
+      params.push(activeVal);
+      whereClauses.push(`"${activeCol}"::text = $${params.length}`);
+    }
+
+    if (mt.default_filter && typeof mt.default_filter === 'object') {
+      const df = mt.default_filter as any;
+      for (const [k, v] of Object.entries(df)) {
+        const col = cleanIdent(k);
+        if (!isSafeIdent(col)) continue;
+        params.push(v);
+        whereClauses.push(`"${col}" = $${params.length}`);
+      }
+    }
+
+    if (parentCol && parentValue !== undefined && parentValue !== null && parentValue !== '') {
+      if (Array.isArray(parentValue)) {
+        const vals = parentValue.filter((x) => x !== '' && x !== null && x !== undefined);
+        if (vals.length) {
+          const placeholders: string[] = [];
+          for (const v of vals) {
+            params.push(v);
+            placeholders.push(`$${params.length}`);
+          }
+          whereClauses.push(`"${parentCol}" IN (${placeholders.join(', ')})`);
+        }
+      } else {
+        params.push(parentValue);
+        whereClauses.push(`"${parentCol}" = $${params.length}`);
+      }
+    }
+
+    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const orderBy =
+      mt.default_order_by && typeof mt.default_order_by === 'string' && mt.default_order_by.trim()
+        ? mt.default_order_by
+        : `"${labelCol}" ASC`;
+
+    const labelExpr = secondaryLabel
+      ? `(COALESCE("${labelCol}"::text, '') || ' ' || COALESCE("${secondaryLabel}"::text, '')) AS label`
+      : `"${labelCol}"::text AS label`;
+
+    const sql = `
+    SELECT "${valueCol}"::text AS value,
+           ${labelExpr}
+    FROM "${schema}"."${table}"
+    ${whereSql}
+    ORDER BY ${orderBy}
+    LIMIT 2000
+  `;
+
+    try {
+      const rows = await this.prisma.$queryRawUnsafe<any[]>(sql, ...params);
+      return (rows ?? []).map((r) => ({
+        label: r?.label ?? String(r?.value ?? ''),
+        value: r?.value,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async getPreviewDefinition(serviceId: string, formTypeId: number) {
+    const meta = await this.getBuilderMeta(serviceId, formTypeId);
+
+    const pages = await this.prisma.formPageMaster.findMany({
+      where: { service_id: serviceId, form_id: formTypeId, is_active: YnFlag.Y },
+      orderBy: { preference: 'asc' },
+      select: {
+        id: true,
+        page_name: true,
+        name_in_hindi: true,
+        preference: true,
+      },
+    });
+
+    const pageIds = pages.map((p) => p.id);
+    if (pageIds.length === 0) {
+      return { meta, pages: [] };
+    }
+
+    const pageCats = await this.prisma.formPageCategoryMapping.findMany({
+      where: { page_id: { in: pageIds }, is_active: YnFlag.Y },
+      orderBy: [{ page_id: 'asc' }, { preference: 'asc' }],
+      select: {
+        id: true,
+        page_id: true,
+        category_id: true,
+        preference: true,
+        help_text: true,
+      },
+    });
+
+    const categoryIds = Array.from(new Set(pageCats.map((c) => c.category_id)));
+    const catMasters = await this.prisma.formCategory.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, categoryName: true, nameAlt: true, nameInHindi: true },
+    });
+    const catName = new Map<number, string>();
+    for (const c of catMasters) catName.set(c.id, c.categoryName ?? c.nameAlt ?? `Category-${c.id}`);
+
+    // Fetch all builder fields for these pages/categories
+    const builderFields = await this.prisma.formBuilderField.findMany({
+      where: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        page_id: { in: pageIds },
+        category_id: { in: categoryIds },
+        is_active: YnFlag.Y,
+      },
+      orderBy: [{ page_id: 'asc' }, { category_id: 'asc' }, { preference: 'asc' }],
+      include: {
+        formField: true,
+        optionConfig: true,
+      },
+    });
+
+    // AddMore groups (for addmore trigger fields)
+    const addMoreGroups = await this.prisma.formAddMoreGroup.findMany({
+      where: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        page_id: { in: pageIds },
+        category_id: { in: categoryIds },
+        is_active: YnFlag.Y,
+      },
+      orderBy: { id: 'desc' },
+      include: {
+        columns: {
+          orderBy: { col_order: 'asc' },
+          include: {
+            builderField: {
+              include: { formField: true, optionConfig: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Cache master options
+    const masterOptionsCache = new Map<number, PreviewOption[]>();
+
+    const resolveOptionsForField = async (bf: any): Promise<PreviewOption[] | null> => {
+      if (!bf?.optionConfig || bf.optionConfig?.is_active === YnFlag.N) return null;
+
+      // âœ… If this is a cascading dropdown (has parent_builder_field_id), do NOT resolve here.
+      // Frontend will fetch filtered options using parent value.
+      if (bf.optionConfig.parent_builder_field_id) return null;
+
+      if (bf.optionConfig.source_type === OptionSourceType.STATIC) {
+        const raw = bf.optionConfig.static_options as any;
+        if (!raw) return null;
+        if (Array.isArray(raw)) return raw as PreviewOption[];
+        // Sometimes stored as JSON string
+        if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? (parsed as PreviewOption[]) : null;
+          } catch {
+            return null;
+          }
+        }
+        return null;
+      }
+
+      if (bf.optionConfig.source_type === OptionSourceType.MASTER && bf.optionConfig.master_table_id) {
+        const id = bf.optionConfig.master_table_id;
+        if (masterOptionsCache.has(id)) return masterOptionsCache.get(id)!;
+        const opts = await this.loadMasterOptions(id);
+        masterOptionsCache.set(id, opts);
+        return opts;
+      }
+
+      return null;
+    };
+
+    // Build index for AddMore groups by trigger field id
+    const addMoreByTrigger = new Map<number, any[]>();
+    for (const g of addMoreGroups) {
+      const t = g.trigger_builder_field_id;
+      if (!addMoreByTrigger.has(t)) addMoreByTrigger.set(t, []);
+      addMoreByTrigger.get(t)!.push(g);
+    }
+
+    // Group builder fields by page/category for output
+    const fieldsByKey = new Map<string, any[]>();
+    for (const r of builderFields) {
+      const k = `${r.page_id}__${r.category_id}`;
+      if (!fieldsByKey.has(k)) fieldsByKey.set(k, []);
+      fieldsByKey.get(k)!.push(r);
+    }
+
+    const pagesOut: any[] = [];
+    for (const p of pages) {
+      const cats = pageCats.filter((c) => c.page_id === p.id);
+      const catsOut: any[] = [];
+
+      for (const c of cats) {
+        const k = `${p.id}__${c.category_id}`;
+        const fields = fieldsByKey.get(k) ?? [];
+
+        const fieldsOut: any[] = [];
+        for (const f of fields) {
+          const fieldCode = f.formField?.formCheckId ?? `FIELD-${f.form_field_id}`;
+          const label = f.custom_label ?? f.formField?.name ?? fieldCode;
+          const options = await resolveOptionsForField(f);
+          const addMore = f.input_type === 'addmore' ? (addMoreByTrigger.get(f.id) ?? []) : [];
+
+          fieldsOut.push({
+            id: f.id,
+            preference: f.preference,
+            field_code: fieldCode,
+            label,
+            input_type: f.input_type,
+            is_required: f.is_required,
+            is_editable: f.is_editable,
+            is_readonly: f.is_readonly,
+            min_length: f.min_length,
+            max_length: f.max_length,
+            pattern: f.pattern,
+            step: f.step,
+            help_text: f.help_text,
+
+            options: options ?? null,
+            option_config: f.optionConfig
+              ? {
+                source_type: f.optionConfig.source_type,
+                master_table_id: f.optionConfig.master_table_id ?? null,
+                parent_builder_field_id: f.optionConfig.parent_builder_field_id ?? null,
+              }
+              : null,
+            add_more_groups: addMore.map((g: any) => ({
+              id: g.id,
+              label: g.label ?? 'Add More',
+              min_rows: g.min_rows ?? 1,
+              max_rows: g.max_rows ?? null,
+              trigger_builder_field_id: g.trigger_builder_field_id,
+              columns: (g.columns ?? []).map((col: any) => {
+                const bf = col.builderField;
+                const fc = bf?.formField?.formCheckId ?? `FIELD-${bf?.form_field_id ?? col.builder_field_id}`;
+                return {
+                  id: col.id,
+                  builder_field_id: col.builder_field_id,
+                  col_order: col.col_order,
+                  field_code: fc,
+                  label: bf?.custom_label ?? bf?.formField?.name ?? fc,
+                  input_type: bf?.input_type ?? 'text',
+                  is_required: bf?.is_required ?? YnFlag.N,
+                  is_editable: bf?.is_editable ?? YnFlag.Y,
+                  is_readonly: bf?.is_readonly ?? YnFlag.N,
+                  min_length: bf?.min_length ?? null,
+                  max_length: bf?.max_length ?? null,
+                  pattern: bf?.pattern ?? null,
+                  step: bf?.step ?? null,
+
+                  help_text: bf?.help_text ?? null,
+                  option_config: bf?.optionConfig
+                    ? {
+                      source_type: bf.optionConfig.source_type,
+                      master_table_id: bf.optionConfig.master_table_id ?? null,
+                      parent_builder_field_id: bf.optionConfig.parent_builder_field_id ?? null,
+                    }
+                    : null,
+                  options: null,
+                };
+              }),
+            })),
+          });
+        }
+
+        catsOut.push({
+          page_category_mapping_id: c.id,
+          category_id: c.category_id,
+          category_name: catName.get(c.category_id) ?? `Category ${c.category_id}`,
+          preference: c.preference,
+          help_text: c.help_text ?? null,
+          fields: fieldsOut,
+        });
+      }
+
+      pagesOut.push({
+        id: p.id,
+        preference: p.preference,
+        page_name: p.page_name ?? '',
+        name_in_hindi: p.name_in_hindi ?? null,
+        categories: catsOut,
+      });
+    }
+
+    const rules = await this.prisma.formRule.findMany({
+      where: { service_id: serviceId, form_id: formTypeId, is_active: YnFlag.Y },
+      orderBy: { id: 'asc' },
+      select: { id: true, scope: true, when_json: true, then_json: true, is_active: true },
+    });
+
+    return {
+      meta,
+      pages: pagesOut,
+      rules,
+      note: 'Preview only â€” no submissions are saved.',
+    };
+  }
+
+
+
+  // =========================================================
+  // âœ… NEW: Master table options endpoint helper (for cascading dropdowns)
+  // =========================================================
+  async getMasterTableOptions(masterTableId: number, parentValue?: string | string[]) {
+    let normalized: any = parentValue;
+    if (typeof parentValue === 'string' && parentValue.includes(',')) {
+      normalized = parentValue
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean);
+    }
+    return this.loadMasterOptions(masterTableId, normalized);
+  }// =========================================================
+  // âœ… NEW BUILDER METHODS
+  // =========================================================
+  async getBuilderFields(serviceId: string, formTypeId: number, pageId: number, categoryId: number) {
+    const rows = await this.prisma.formBuilderField.findMany({
+      where: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        page_id: pageId,
+        category_id: categoryId,
+        is_active: YnFlag.Y,
+      },
+      orderBy: { preference: 'asc' },
+      include: { formField: true },
+    });
+
+    // âœ… Return full editable properties so UI can prefill Edit modal properly
+    return rows.map((r) => ({
+      id: r.id,
+      preference: r.preference,
+      field_code: r.formField?.formCheckId ?? `FIELD-${r.form_field_id}`,
+      label: r.custom_label ?? r.formField?.name ?? '',
+      input_type: r.input_type,
+      is_required: r.is_required,
+      is_active: r.is_active,
+      form_field_id: r.form_field_id,
+
+      // NEW: include full editable fields for UI prefill
+      custom_label: r.custom_label,
+      help_text: r.help_text,
+      is_editable: r.is_editable,
+      is_readonly: r.is_readonly,
+      min_length: r.min_length,
+      max_length: r.max_length,
+      pattern: r.pattern,
+      step: r.step,
+      validation_rule: r.validation_rule,
+      row_type: r.row_type,
+    }));
+  }
+
+  async createBuilderField(pageId: number, categoryId: number, dto: CreateBuilderFieldDto) {
+    const { serviceId, formTypeId, formFieldId } = dto;
+
+    const field = await this.prisma.formField.findUnique({ where: { id: formFieldId } });
+    if (!field) throw new NotFoundException(`FormField master not found: ${formFieldId}`);
+
+    const existing = await this.prisma.formBuilderField.findFirst({
+      where: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        page_id: pageId,
+        category_id: categoryId,
+        form_field_id: formFieldId,
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    let preference = dto.preference;
+    if (!preference) {
+      const maxPref = await this.prisma.formBuilderField.aggregate({
+        where: { service_id: serviceId, form_id: formTypeId, page_id: pageId, category_id: categoryId, is_active: YnFlag.Y },
+        _max: { preference: true },
+      });
+      preference = (maxPref._max.preference ?? 0) + 1;
+    }
+
+    if (existing && existing.is_active === YnFlag.N) {
+      return this.prisma.formBuilderField.update({
+        where: { id: existing.id },
+        data: {
+          input_type: dto.inputType,
+          custom_label: dto.customLabel ?? null,
+          help_text: dto.helpText ?? null,
+          is_required: dto.isRequired ?? YnFlag.N,
+          is_editable: dto.isEditable ?? YnFlag.Y,
+          is_readonly: dto.isReadonly ?? YnFlag.N,
+          min_length: dto.minLength ?? null,
+          max_length: dto.maxLength ?? null,
+          pattern: dto.pattern ?? null,
+          step: dto.step ?? null,
+          validation_rule: dto.validationRule ?? null,
+          row_type: dto.rowType ?? null,
+          preference,
+          is_active: YnFlag.Y,
+          modified: new Date(),
+        },
+      });
+    }
+
+    if (existing && existing.is_active === YnFlag.Y) {
+      throw new BadRequestException('This field is already added in this page/category.');
+    }
+
+    return this.prisma.formBuilderField.create({
+      data: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        page_id: pageId,
+        category_id: categoryId,
+        preference,
+        form_field_id: formFieldId,
+        input_type: dto.inputType,
+        custom_label: dto.customLabel ?? null,
+        help_text: dto.helpText ?? null,
+        is_required: dto.isRequired ?? YnFlag.N,
+        is_editable: dto.isEditable ?? YnFlag.Y,
+        is_readonly: dto.isReadonly ?? YnFlag.N,
+        min_length: dto.minLength ?? null,
+        max_length: dto.maxLength ?? null,
+        pattern: dto.pattern ?? null,
+        step: dto.step ?? null,
+        validation_rule: dto.validationRule ?? null,
+        row_type: dto.rowType ?? null,
+        is_active: YnFlag.Y,
+        created: new Date(),
+      },
+    });
+  }
+
+  async updateBuilderField(id: number, dto: UpdateBuilderFieldDto) {
+    const existing = await this.prisma.formBuilderField.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Builder field not found.');
+
+    return this.prisma.formBuilderField.update({
+      where: { id },
+      data: {
+        input_type: dto.inputType ?? undefined,
+        custom_label: dto.customLabel ?? undefined,
+        help_text: dto.helpText ?? undefined,
+        is_required: dto.isRequired ?? undefined,
+        is_editable: dto.isEditable ?? undefined,
+        is_readonly: dto.isReadonly ?? undefined,
+        min_length: dto.minLength ?? undefined,
+        max_length: dto.maxLength ?? undefined,
+        pattern: dto.pattern ?? undefined,
+        step: dto.step ?? undefined,
+        validation_rule: dto.validationRule ?? undefined,
+        row_type: dto.rowType ?? undefined,
+        preference: dto.preference ?? undefined,
+        is_active: dto.isActive ?? undefined,
+        modified: new Date(),
+      },
+    });
+  }
+
+  async softDeleteBuilderField(id: number) {
+    const existing = await this.prisma.formBuilderField.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Builder field not found.');
+
+    await this.prisma.$transaction([
+      this.prisma.formFieldOptionConfig.updateMany({
+        where: { builder_field_id: id },
+        data: { is_active: YnFlag.N, modified: new Date() },
+      }),
+      this.prisma.formBuilderField.update({
+        where: { id },
+        data: { is_active: YnFlag.N, modified: new Date() },
+      }),
+    ]);
+
+    return { success: true };
+  }
+
+  async reorderBuilderFields(pageId: number, categoryId: number, dto: ReorderBuilderFieldsDto) {
+    const ids = dto.items.map((i) => i.id);
+
+    const rows = await this.prisma.formBuilderField.findMany({
+      where: { id: { in: ids }, page_id: pageId, category_id: categoryId },
+      select: { id: true },
+    });
+
+    if (rows.length !== ids.length) {
+      throw new BadRequestException('Some field IDs do not belong to this page/category.');
+    }
+
+    await this.prisma.$transaction(
+      dto.items.map((i) =>
+        this.prisma.formBuilderField.update({
+          where: { id: i.id },
+          data: { preference: i.preference, modified: new Date() },
+        }),
+      ),
+    );
+
+    return { success: true };
+  }
+
+  async getFieldOptionConfig(builderFieldId: number) {
+    const cfg = await this.prisma.formFieldOptionConfig.findUnique({
+      where: { builder_field_id: builderFieldId },
+    });
+    return cfg ?? null;
+  }
+
+  async saveFieldOptionConfig(builderFieldId: number, dto: SaveFieldOptionsDto) {
+    const field = await this.prisma.formBuilderField.findUnique({ where: { id: builderFieldId } });
+    if (!field) throw new NotFoundException('Builder field not found.');
+
+    const allowed = ['select', 'radio', 'checkbox'];
+    if (!allowed.includes(field.input_type)) {
+      throw new BadRequestException(`Options are only supported for: ${allowed.join(', ')}`);
+    }
+
+    if (dto.sourceType === OptionSourceType.MASTER && !dto.masterTableId) {
+      throw new BadRequestException('masterTableId is required for MASTER source.');
+    }
+
+    if (dto.sourceType === OptionSourceType.STATIC && (!dto.staticOptions || dto.staticOptions.length === 0)) {
+      throw new BadRequestException('staticOptions is required for STATIC source.');
+    }
+
+    return this.prisma.formFieldOptionConfig.upsert({
+      where: { builder_field_id: builderFieldId },
+      create: {
+        builder_field_id: builderFieldId,
+        source_type: dto.sourceType,
+        master_table_id: dto.sourceType === OptionSourceType.MASTER ? dto.masterTableId : null,
+        static_options: dto.sourceType === OptionSourceType.STATIC ? (dto.staticOptions as Prisma.InputJsonValue) : Prisma.DbNull,
+        parent_builder_field_id: dto.parentBuilderFieldId ?? null,
+        is_active: YnFlag.Y,
+        created: new Date(),
+      },
+      update: {
+        source_type: dto.sourceType,
+        master_table_id: dto.sourceType === OptionSourceType.MASTER ? dto.masterTableId : null,
+        static_options: dto.sourceType === OptionSourceType.STATIC ? (dto.staticOptions as Prisma.InputJsonValue) : Prisma.DbNull,
+        parent_builder_field_id: dto.parentBuilderFieldId ?? null,
+        is_active: YnFlag.Y,
+        modified: new Date(),
+      },
+    });
+  }
+
+  async createAddMoreGroup(dto: CreateAddMoreGroupDto) {
+    const trigger = await this.prisma.formBuilderField.findUnique({ where: { id: dto.triggerBuilderFieldId } });
+    if (!trigger) throw new NotFoundException('Trigger builder field not found.');
+    if (trigger.input_type !== 'addmore') throw new BadRequestException('Trigger field must be input_type=addmore.');
+
+    return this.prisma.formAddMoreGroup.create({
+      data: {
+        service_id: dto.serviceId,
+        form_id: dto.formTypeId,
+        page_id: dto.pageId,
+        category_id: dto.categoryId,
+        trigger_builder_field_id: dto.triggerBuilderFieldId,
+        label: dto.label ?? null,
+        min_rows: dto.minRows ?? 1,
+        max_rows: dto.maxRows ?? null,
+        is_active: YnFlag.Y,
+        created: new Date(),
+      },
+    });
+  }
+
+  async listAddMoreGroups(q: ListAddMoreGroupsQueryDto) {
+    return this.prisma.formAddMoreGroup.findMany({
+      where: {
+        service_id: q.serviceId,
+        form_id: q.formTypeId,
+        page_id: q.pageId,
+        category_id: q.categoryId,
+        is_active: YnFlag.Y,
+        ...(q.triggerBuilderFieldId ? { trigger_builder_field_id: q.triggerBuilderFieldId } : {}),
+      },
+      include: { columns: { orderBy: { col_order: 'asc' } } },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  async setAddMoreColumns(groupId: number, dto: SetAddMoreColumnsDto) {
+    const group = await this.prisma.formAddMoreGroup.findUnique({ where: { id: groupId } });
+    if (!group) throw new NotFoundException('AddMore group not found.');
+
+    const cols = await this.prisma.formBuilderField.findMany({
+      where: {
+        id: { in: dto.columnBuilderFieldIds },
+        service_id: group.service_id,
+        form_id: group.form_id,
+        page_id: group.page_id,
+        category_id: group.category_id,
+        is_active: YnFlag.Y,
+      },
+      select: { id: true },
+    });
+
+    if (cols.length !== dto.columnBuilderFieldIds.length) {
+      throw new BadRequestException('Some column fields are not valid for this AddMore group scope.');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.formAddMoreColumn.deleteMany({ where: { group_id: groupId } }),
+      ...dto.columnBuilderFieldIds.map((fid, idx) =>
+        this.prisma.formAddMoreColumn.create({
+          data: { group_id: groupId, builder_field_id: fid, col_order: idx + 1 },
+        }),
+      ),
+    ]);
+
+    return { success: true };
+  }
+
+  async softDeleteAddMoreGroup(groupId: number) {
+    const group = await this.prisma.formAddMoreGroup.findUnique({ where: { id: groupId } });
+    if (!group) throw new NotFoundException('AddMore group not found.');
+
+    await this.prisma.$transaction([
+      this.prisma.formAddMoreColumn.deleteMany({ where: { group_id: groupId } }),
+      this.prisma.formAddMoreGroup.update({
+        where: { id: groupId },
+        data: { is_active: YnFlag.N, modified: new Date() },
+      }),
+    ]);
+
+    return { success: true };
+  }
+
+  async getRules(serviceId: string, formTypeId: number) {
+    return this.prisma.formRule.findMany({
+      where: { service_id: serviceId, form_id: formTypeId, is_active: YnFlag.Y },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  async createRule(serviceId: string, formTypeId: number, dto: CreateRuleDto) {
+    return this.prisma.formRule.create({
+      data: {
+        service_id: serviceId,
+        form_id: formTypeId,
+        scope: dto.scope,
+        when_json: dto.whenJson,
+        then_json: dto.thenJson,
+        is_active: dto.isActive ?? YnFlag.Y,
+        created: new Date(),
+      },
+    });
+  }
+
+  async updateRule(ruleId: number, dto: UpdateRuleDto) {
+    const rule = await this.prisma.formRule.findUnique({ where: { id: ruleId } });
+    if (!rule) throw new NotFoundException('Rule not found.');
+
+    return this.prisma.formRule.update({
+      where: { id: ruleId },
+      data: {
+        scope: dto.scope ?? undefined,
+        when_json: dto.whenJson ?? undefined,
+        then_json: dto.thenJson ?? undefined,
+        is_active: dto.isActive ?? undefined,
+        modified: new Date(),
+      },
+    });
+  }
+
+  async softDeleteRule(ruleId: number) {
+    const rule = await this.prisma.formRule.findUnique({ where: { id: ruleId } });
+    if (!rule) throw new NotFoundException('Rule not found.');
+
+    await this.prisma.formRule.update({
+      where: { id: ruleId },
+      data: { is_active: YnFlag.N, modified: new Date() },
+    });
+
+    return { success: true };
+  }
+}
+
+
+===== FILE: apps\frontend\src\components\admin\master\formBuilder\FieldOptionsModal.tsx =====
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Dialog } from 'primereact/dialog';
+import { Dropdown } from 'primereact/dropdown';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { Toast } from 'primereact/toast';
+
+import { useMasterTablesDropdown } from '@/hooks/master/useMasterTables';
+import { useFormFieldOptions, useSaveFormFieldOptions } from '@/hooks/master/useFormFieldOptions';
+
+type ParentCandidate = { id: number; field_code: string; label: string; input_type: string };
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  builderFieldId: number | null;
+  parentCandidates?: ParentCandidate[];
+};
+
+type StaticOpt = { label: string; value: string; disabled?: boolean; order?: number };
+
+export function FieldOptionsModal({ open, onClose, builderFieldId, parentCandidates }: Props) {
+  const toast = useRef<Toast>(null);
+
+  const { data: existing } = useFormFieldOptions(builderFieldId ?? undefined);
+  const save = useSaveFormFieldOptions();
+  const { data: masters } = useMasterTablesDropdown();
+
+  const parentOptions = useMemo(() => {
+    return (parentCandidates ?? [])
+      // parent should usually be a select/radio/checkbox or any field that yields a value
+      .map((p) => ({
+        label: `${p.field_code} â€” ${p.label}`,
+        value: p.id,
+      }));
+  }, [parentCandidates]);
+
+  const masterOptions = useMemo(() => {
+    return (masters ?? []).map((m: any) => ({
+      label: `${m.master_name} (${m.master_code})`,
+      value: m.id,
+    }));
+  }, [masters]);
+
+  const [sourceType, setSourceType] = useState<'STATIC' | 'MASTER'>('STATIC');
+  const [masterTableId, setMasterTableId] = useState<number | null>(null);
+  const [parentBuilderFieldId, setParentBuilderFieldId] = useState<number | null>(null);
+  const [staticOptions, setStaticOptions] = useState<StaticOpt[]>([{ label: 'Yes', value: 'Yes' }]);
+
+  // âœ… Stabilize dropdown overlays
+  const appendTo = typeof window !== 'undefined' ? document.body : undefined;
+  const stableScrollHeight = '300px';
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (existing?.source_type) {
+      setSourceType(existing.source_type);
+      setMasterTableId(existing.master_table_id ?? null);
+      setStaticOptions((existing.static_options ?? []) as StaticOpt[]);
+      setParentBuilderFieldId(existing.parent_builder_field_id ?? null);
+    } else {
+      setSourceType('STATIC');
+      setMasterTableId(null);
+      setStaticOptions([
+        { label: 'Yes', value: 'Yes' },
+        { label: 'No', value: 'No' },
+      ]);
+      setParentBuilderFieldId(null);
+    }
+  }, [open, existing]);
+
+  function updateOpt(i: number, patch: Partial<StaticOpt>) {
+    setStaticOptions((prev) => prev.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
+  }
+
+  function addRow() {
+    setStaticOptions((prev) => [...prev, { label: '', value: '' }]);
+  }
+
+  function removeRow(i: number) {
+    setStaticOptions((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function saveOptions() {
+    if (!builderFieldId) return;
+
+    if (sourceType === 'MASTER' && !masterTableId) {
+      toast.current?.show({ severity: 'warn', summary: 'Missing', detail: 'Select master table.', life: 2500 });
+      return;
+    }
+
+    if (sourceType === 'STATIC') {
+      const cleaned = staticOptions
+        .map((o, idx) => ({ ...o, order: o.order ?? idx + 1 }))
+        .filter((o) => o.label.trim() && String(o.value).trim());
+
+      if (cleaned.length === 0) {
+        toast.current?.show({ severity: 'warn', summary: 'Missing', detail: 'Add at least one option.', life: 2500 });
+        return;
+      }
+
+      await save.mutateAsync({
+        builderFieldId,
+        sourceType: 'STATIC',
+        staticOptions: cleaned,
+      });
+
+      toast.current?.show({ severity: 'success', summary: 'Saved', detail: 'Options saved.', life: 2000 });
+      onClose();
+      return;
+    }
+
+    // MASTER (âœ… include parentBuilderFieldId)
+    await save.mutateAsync({
+      builderFieldId,
+      sourceType: 'MASTER',
+      masterTableId: masterTableId!,
+      parentBuilderFieldId: parentBuilderFieldId ?? undefined,
+    });
+
+    toast.current?.show({ severity: 'success', summary: 'Saved', detail: 'Master options linked.', life: 2000 });
+    onClose();
+  }
+
+  return (
+    <Dialog header="Field Options" visible={open} onHide={onClose} style={{ width: 'min(950px, 96vw)' }} modal>
+      <Toast ref={toast} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div>
+          <label style={{ fontWeight: 600 }}>Source Type</label>
+          <Dropdown
+            value={sourceType}
+            options={[
+              { label: 'Static Options', value: 'STATIC' },
+              { label: 'Master Table', value: 'MASTER' },
+            ]}
+            onChange={(e) => setSourceType(e.value)}
+            className="w-100"
+            appendTo={appendTo}
+            scrollHeight={stableScrollHeight}
+          />
+        </div>
+
+        {sourceType === 'MASTER' ? (
+          <div>
+            <label style={{ fontWeight: 600 }}>Master Table</label>
+            <Dropdown
+              value={masterTableId}
+              options={masterOptions}
+              onChange={(e) => setMasterTableId(e.value)}
+              className="w-100"
+              placeholder="Select master"
+              filter
+              filterPlaceholder="Search..."
+              showClear
+              appendTo={appendTo}
+              scrollHeight={stableScrollHeight}
+            />
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {sourceType === 'MASTER' ? (
+          <div>
+            <label style={{ fontWeight: 600 }}>Parent Field (for cascading)</label>
+            <Dropdown
+              value={parentBuilderFieldId}
+              options={parentOptions}
+              onChange={(e) => setParentBuilderFieldId(e.value ?? null)}
+              className="w-100"
+              placeholder="(Optional) Select parent field"
+              filter
+              filterPlaceholder="Search..."
+              showClear
+              appendTo={appendTo}
+              scrollHeight={stableScrollHeight}
+            />
+            <small style={{ color: '#6b7280' }}>
+              Select a parent field (e.g., Country) so this field (e.g., State) loads only matching options using the
+              master table&apos;s <code>parent_column</code>.
+            </small>
+          </div>
+        ) : (
+          <div />
+        )}
+      </div>
+
+      {sourceType === 'STATIC' && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h5 style={{ margin: 0 }}>Static Options</h5>
+            <Button label="+ Add Row" size="small" onClick={addRow} />
+          </div>
+
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {staticOptions.map((opt, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr auto',
+                  gap: 10,
+                  alignItems: 'center',
+                }}
+              >
+                <InputText value={opt.label} onChange={(e) => updateOpt(idx, { label: e.target.value })} placeholder="Label" />
+                <InputText
+                  value={String(opt.value ?? '')}
+                  onChange={(e) => updateOpt(idx, { value: e.target.value })}
+                  placeholder="Value"
+                />
+                <Button icon="pi pi-times" severity="danger" outlined onClick={() => removeRow(idx)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+        <Button label="Cancel" severity="secondary" onClick={onClose} />
+        <Button label="Save" onClick={saveOptions} loading={save.isPending} />
+      </div>
+    </Dialog>
+  );
+}
+
+===== FILE: apps\frontend\src\components\admin\master\formBuilder\FormBuilderScreen.tsx =====
+'use client';
+
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Toast } from 'primereact/toast';
+import { Dropdown } from 'primereact/dropdown';
+import { Button } from 'primereact/button';
+import { Divider } from 'primereact/divider';
+
+import type { FbPage, FbPageCategory } from '@/types/formBuilder';
+import apiClient from '@/lib/api-client';
+import { ReusableDataTable } from '@/components/DataTable/ReusableDataTable';
+import type { DataTableColumnConfig } from '@/components/DataTable/types';
+
+import { useFormBuilderFields, useDeleteFormBuilderField } from '@/hooks/master/useFormBuilderFields';
+import { useFormCategories } from '@/hooks/master/useFormCategories';
+
+import { AddInputModal } from './AddInputModal';
+import { FieldOptionsModal } from './FieldOptionsModal';
+import { AddMoreModal } from './AddMoreModal';
+import { EditInputModal } from './EditInputModal';
+import { OPTION_CAPABLE_TYPES } from './constants';
+
+type Props = { serviceId: string; formTypeId: number };
+
+export function FormBuilderScreen({ serviceId, formTypeId }: Props) {
+
+const toast = useRef<Toast>(null);
+
+const router = useRouter();
+const params = useParams<{ locale: string }>();
+const locale = params?.locale ?? 'en';
+
+const [builderMeta, setBuilderMeta] = useState<{
+  serviceId: string;
+  serviceName: string;
+  formTypeId: number;
+  formTypeName: string;
+} | null>(null);
+
+  const [pages, setPages] = useState<FbPage[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState<number | null>(null);
+
+  const [pageCategories, setPageCategories] = useState<FbPageCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+
+  const [addOpen, setAddOpen] = useState(false);
+
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionsFieldId, setOptionsFieldId] = useState<number | null>(null);
+
+  const [addMoreOpen, setAddMoreOpen] = useState(false);
+  const [addMoreTriggerId, setAddMoreTriggerId] = useState<number | null>(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editRow, setEditRow] = useState<any | null>(null);
+
+  const del = useDeleteFormBuilderField();
+
+  const { data: categoryMaster = [] } = useFormCategories();
+  const categoryNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    (categoryMaster ?? []).forEach((c: any) =>
+      map.set(c.id, c.categoryName ?? c.nameAlt ?? `Category-${c.id}`),
+    );
+    return map;
+  }, [categoryMaster]);
+
+  const loadPages = useCallback(async () => {
+    const res = await apiClient.get(
+      `/master/form-builder/services/${encodeURIComponent(serviceId)}/forms/${formTypeId}/pages`,
+    );
+    setPages(res.data ?? []);
+  }, [serviceId, formTypeId]);
+
+const loadMeta = useCallback(async () => {
+  try {
+    const res = await apiClient.get(
+      `/master/form-builder/services/${encodeURIComponent(serviceId)}/forms/${formTypeId}/meta`,
+    );
+    setBuilderMeta(res.data ?? null);
+  } catch {
+    setBuilderMeta(null);
+  }
+}, [serviceId, formTypeId]);
+
+  const loadPageCategories = useCallback(async (pageId: number) => {
+    const res = await apiClient.get(`/master/form-builder/pages/${pageId}/categories`);
+    setPageCategories(res.data ?? []);
+  }, []);
+
+  useEffect(() => {
+    loadMeta().catch(() => {});
+    loadPages().catch(() => {});
+    setSelectedPageId(null);
+    setSelectedCategoryId(null);
+    setPageCategories([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, formTypeId]);
+
+  useEffect(() => {
+    if (!selectedPageId) return;
+    setSelectedCategoryId(null);
+    loadPageCategories(selectedPageId).catch(() => setPageCategories([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPageId]);
+
+  const pageOptions = useMemo(
+    () =>
+      pages.map((p) => ({
+        label: `Page ${p.preference} â€” ${p.page_name ?? ''}`,
+        value: p.id,
+      })),
+    [pages],
+  );
+
+  const categoryOptions = useMemo(
+    () =>
+      (pageCategories ?? []).map((c) => ({
+        label: `${categoryNameById.get(c.category_id) ?? `Category ${c.category_id}`}`,
+        value: c.category_id,
+      })),
+    [pageCategories, categoryNameById],
+  );
+
+  const { data: builderRows = [], isLoading, refetch } = useFormBuilderFields({
+    serviceId,
+    formTypeId,
+    pageId: selectedPageId,
+    categoryId: selectedCategoryId,
+  });
+
+  const existingFormFieldIds = useMemo(
+    () => (builderRows ?? []).map((r: any) => r.form_field_id).filter(Boolean),
+    [builderRows],
+  );
+
+  const doDelete = useCallback(
+    async (id: number) => {
+      const ok = window.confirm('Delete this input?');
+      if (!ok) return;
+
+      try {
+        await del.mutateAsync(id);
+        toast.current?.show({ severity: 'success', summary: 'Deleted', detail: 'Input deleted.', life: 2000 });
+        await refetch();
+      } catch (e: any) {
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: e?.response?.data?.message ?? 'Could not delete.',
+          life: 3500,
+        });
+      }
+    },
+    [del, refetch],
+  );
+
+  const columns: DataTableColumnConfig<any>[] = useMemo(
+    () => [
+      { field: 'preference', header: 'Order', filterType: 'none' },
+      { field: 'field_code', header: 'Field Code', filterType: 'text' },
+      { field: 'label', header: 'Label', filterType: 'text' },
+      { field: 'input_type', header: 'Input Type', filterType: 'text' },
+      { field: 'is_required', header: 'Required', filterType: 'none' },
+      {
+        field: 'actions',
+        header: 'Actions',
+        filterType: 'none',
+        body: (row: any) => {
+          const canOptions = OPTION_CAPABLE_TYPES.includes(row.input_type);
+          const isAddMore = row.input_type === 'addmore';
+
+          return (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Button
+                size="small"
+                label="Edit"
+                icon="pi pi-pencil"
+                severity="secondary"
+                onClick={() => {
+                  setEditRow(row);
+                  setEditOpen(true);
+                }}
+              />
+
+              {canOptions && (
+                <Button
+                  size="small"
+                  label="Add Option"
+                  icon="pi pi-list"
+                  severity="secondary"
+                  onClick={() => {
+                    setOptionsFieldId(row.id);
+                    setOptionsOpen(true);
+                  }}
+                />
+              )}
+
+              {isAddMore && (
+                <Button
+                  size="small"
+                  label="Add More"
+                  icon="pi pi-table"
+                  severity="secondary"
+                  onClick={() => {
+                    setAddMoreTriggerId(row.id);
+                    setAddMoreOpen(true);
+                  }}
+                />
+              )}
+
+              <Button
+                size="small"
+                label="Delete"
+                icon="pi pi-trash"
+                severity="danger"
+                onClick={() => doDelete(row.id)}
+              />
+            </div>
+          );
+        },
+      },
+    ],
+    [doDelete],
+  );
+
+  // âœ… Fix dropdown overlay shrinking (overlay + virtual scroller)
+  const appendTo = typeof window !== 'undefined' ? document.body : undefined;
+
+  return (
+    <div>
+      <Toast ref={toast} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={{ fontWeight: 600 }}>Select Page</label>
+          <Dropdown
+            value={selectedPageId}
+            options={pageOptions}
+            onChange={(e) => setSelectedPageId(e.value)}
+            placeholder="Select Page"
+            className="w-100"
+            filter
+            filterDelay={300}
+            showClear
+            virtualScrollerOptions={{ itemSize: 36 }}
+            scrollHeight="300px"
+            appendTo={appendTo}
+            panelStyle={{ minWidth: '100%' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontWeight: 600 }}>Select Category</label>
+          <Dropdown
+            value={selectedCategoryId}
+            options={categoryOptions}
+            onChange={(e) => setSelectedCategoryId(e.value)}
+            placeholder="Select Category"
+            className="w-100"
+            filter
+            filterDelay={300}
+            showClear
+            disabled={!selectedPageId}
+            virtualScrollerOptions={{ itemSize: 36 }}
+            scrollHeight="300px"
+            appendTo={appendTo}
+            panelStyle={{ minWidth: '100%' }}
+          />
+        </div>
+      </div>
+
+<div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+  <div style={{ fontWeight: 700, fontSize: 18 }}>
+    Form Builder â€” Service: {builderMeta?.serviceId ?? serviceId}{' '}
+    {builderMeta?.serviceName ? `(${builderMeta.serviceName})` : ''} | Form Type:{' '}
+    {builderMeta?.formTypeId ?? formTypeId}{' '}
+    {builderMeta?.formTypeName ? `(${builderMeta.formTypeName})` : ''}
+  </div>
+
+  <div className="d-flex gap-2 flex-wrap">
+    <Button
+      label="Generate Form"
+      icon="pi pi-eye"
+      severity="info"
+      onClick={() =>
+        router.push(
+          `/${locale}/admin/master/form-builder/services/${serviceId}/forms/${formTypeId}/builder/preview`,
+        )
+      }
+    />
+  </div>
+</div>
+
+      <Divider />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h4 style={{ margin: 0 }}>Added Pages, Categories & Inputs</h4>
+        <Button
+          label="+ Add Input"
+          icon="pi pi-plus"
+          disabled={!selectedPageId || !selectedCategoryId}
+          onClick={() => setAddOpen(true)}
+        />
+      </div>
+
+      <ReusableDataTable
+        data={builderRows}
+        loading={isLoading}
+        config={{
+          dataKey: 'id',
+          columns,
+          globalFilterFields: ['field_code', 'label', 'input_type'],
+          rows: 10,
+          rowsPerPageOptions: [10, 25, 50],
+          stripedRows: true,
+          showGridlines: true,
+        }}
+      />
+
+      {selectedPageId && selectedCategoryId && (
+        <AddInputModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          serviceId={serviceId}
+          formTypeId={formTypeId}
+          pageId={selectedPageId}
+          categoryId={selectedCategoryId}
+          existingFormFieldIds={existingFormFieldIds}
+          onCreated={() => refetch()}
+        />
+      )}
+
+      <EditInputModal
+        open={editOpen}
+        row={editRow}
+        onClose={() => {
+          setEditOpen(false);
+          setEditRow(null);
+        }}
+        onSaved={async () => {
+          toast.current?.show({ severity: 'success', summary: 'Updated', detail: 'Input updated.', life: 2000 });
+          await refetch();
+        }}
+      />
+
+      
+<FieldOptionsModal
+  open={optionsOpen}
+  onClose={() => setOptionsOpen(false)}
+  builderFieldId={optionsFieldId}
+  parentCandidates={builderRows
+    .filter((r: any) => r?.id !== optionsFieldId)
+    .map((r: any) => ({
+      id: r.id,
+      field_code: r.field_code,
+      label: r.label,
+      input_type: r.input_type,
+    }))}
+/>
+
+      {selectedPageId && selectedCategoryId && (
+        <AddMoreModal
+          open={addMoreOpen}
+          onClose={() => setAddMoreOpen(false)}
+          serviceId={serviceId}
+          formTypeId={formTypeId}
+          pageId={selectedPageId}
+          categoryId={selectedCategoryId}
+          triggerBuilderFieldId={addMoreTriggerId}
+        />
+      )}
+    </div>
+  );
+}
+
+
+===== FILE: apps\frontend\src\components\admin\master\formBuilder\FormPreview.tsx =====
+'use client';
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Button } from 'primereact/button';
+import { Skeleton } from 'primereact/skeleton';
+import { Message } from 'primereact/message';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { InputNumber } from 'primereact/inputnumber';
+import { Dropdown } from 'primereact/dropdown';
+import { Checkbox } from 'primereact/checkbox';
+import { RadioButton } from 'primereact/radiobutton';
+
+import apiClient from '@/lib/api-client';
+import {
+    PreviewAddMoreGroup,
+    PreviewAddMoreColumn,
+    PreviewField,
+    PreviewOption,
+    PreviewRule,
+    YnFlag,
+    useFormBuilderPreview,
+} from '@/hooks/master/useFormBuilderPreview';
+
+type Props = {
+    serviceId: string;
+    formTypeId: number;
+};
+
+type Errors = Record<string, string>;
+
+type AddMoreValues = Record<number, Array<Record<string, any>>>;
+
+type FieldOverrides = {
+    required?: boolean;
+    visible?: boolean;
+    readonly?: boolean;
+    editable?: boolean;
+};
+
+function isEmptyValue(v: any) {
+    if (v === null || v === undefined) return true;
+    if (typeof v === 'string') return v.trim().length === 0;
+    if (Array.isArray(v)) return v.length === 0;
+    return false;
+}
+
+function normalizeOptions(options: PreviewOption[] | null | undefined): PreviewOption[] {
+    if (!options) return [];
+    const sorted = [...options].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return sorted.map((o) => ({ label: o.label, value: o.value, disabled: o.disabled, order: o.order }));
+}
+
+function fieldDisabled(isEditable: YnFlag, isReadonly: YnFlag, override?: FieldOverrides) {
+    const base = isEditable === 'N' || isReadonly === 'Y';
+    if (override?.readonly === true) return true;
+    if (override?.editable === false) return true;
+    return base;
+}
+
+function toArray(v: any): any[] {
+    if (Array.isArray(v)) return v;
+    if (v === null || v === undefined) return [];
+    return [v];
+}
+
+function normalizeThenActions(thenJson: any): Array<{ field: string; prop: keyof FieldOverrides; value: boolean }> {
+    const actions: Array<{ field: string; prop: keyof FieldOverrides; value: boolean }> = [];
+
+    if (!thenJson || typeof thenJson !== 'object') return actions;
+
+    // Style 1: { actions: [{ field|targetField, set: { required/visible/readonly/editable } }] }
+    if (Array.isArray(thenJson.actions)) {
+        for (const a of thenJson.actions) {
+            const field = a?.field ?? a?.targetField;
+            const set = a?.set;
+            if (!field || !set || typeof set !== 'object') continue;
+            for (const [k, v] of Object.entries(set)) {
+                if (['required', 'visible', 'readonly', 'editable'].includes(k) && typeof v === 'boolean') {
+                    actions.push({ field, prop: k as keyof FieldOverrides, value: v });
+                }
+            }
+        }
+    }
+
+    // Style 2: { set: { FIELD_CODE: { required: true, visible: false } } }
+    if (thenJson.set && typeof thenJson.set === 'object') {
+        for (const [field, patch] of Object.entries(thenJson.set)) {
+            if (!patch || typeof patch !== 'object') continue;
+            for (const [k, v] of Object.entries(patch as any)) {
+                if (['required', 'visible', 'readonly', 'editable'].includes(k) && typeof v === 'boolean') {
+                    actions.push({ field, prop: k as keyof FieldOverrides, value: v });
+                }
+            }
+        }
+    }
+
+    // Style 3: { required: ['A'], optional: ['B'], show: ['A'], hide: ['B'], readonly: ['C'], editable: ['D'] }
+    if (Array.isArray(thenJson.required)) {
+        for (const f of thenJson.required) actions.push({ field: String(f), prop: 'required', value: true });
+    }
+    if (Array.isArray(thenJson.optional)) {
+        for (const f of thenJson.optional) actions.push({ field: String(f), prop: 'required', value: false });
+    }
+    if (Array.isArray(thenJson.show)) {
+        for (const f of thenJson.show) actions.push({ field: String(f), prop: 'visible', value: true });
+    }
+    if (Array.isArray(thenJson.hide)) {
+        for (const f of thenJson.hide) actions.push({ field: String(f), prop: 'visible', value: false });
+    }
+    if (Array.isArray(thenJson.readonly)) {
+        for (const f of thenJson.readonly) actions.push({ field: String(f), prop: 'readonly', value: true });
+    }
+    if (Array.isArray(thenJson.editable)) {
+        for (const f of thenJson.editable) actions.push({ field: String(f), prop: 'readonly', value: false });
+    }
+
+    return actions;
+}
+
+function evalConditionTree(tree: any, values: Record<string, any>): boolean {
+    if (!tree || typeof tree !== 'object') return false;
+
+    // { all: [cond...] }
+    if (Array.isArray(tree.all)) {
+        return tree.all.every((c: any) => evalConditionTree(c, values));
+    }
+
+    // { any: [cond...] }
+    if (Array.isArray(tree.any)) {
+        return tree.any.some((c: any) => evalConditionTree(c, values));
+    }
+
+    // leaf: { field, operator, value }
+    const field = tree.field ?? tree.field_code ?? tree.left;
+    const op = (tree.operator ?? tree.op ?? 'equals') as string;
+    const rhs = tree.value ?? tree.right;
+
+    if (!field) return false;
+
+    const lhs = values[String(field)];
+
+    switch (op) {
+        case 'equals':
+        case 'eq':
+            return lhs === rhs;
+        case 'not_equals':
+        case 'neq':
+            return lhs !== rhs;
+        case 'in': {
+            const rhsArr = Array.isArray(rhs) ? rhs : [rhs];
+            const lhsArr = toArray(lhs);
+            return lhsArr.some((x) => rhsArr.includes(x));
+        }
+        case 'not_in': {
+            const rhsArr = Array.isArray(rhs) ? rhs : [rhs];
+            const lhsArr = toArray(lhs);
+            return lhsArr.every((x) => !rhsArr.includes(x));
+        }
+        case 'contains': {
+            if (typeof lhs === 'string' && typeof rhs === 'string') return lhs.includes(rhs);
+            const lhsArr = toArray(lhs);
+            return lhsArr.includes(rhs);
+        }
+        case 'greater_than':
+            return Number(lhs) > Number(rhs);
+        case 'less_than':
+            return Number(lhs) < Number(rhs);
+        case 'is_empty':
+            return isEmptyValue(lhs);
+        case 'is_not_empty':
+            return !isEmptyValue(lhs);
+        default:
+            return false;
+    }
+}
+
+export function FormPreview({ serviceId, formTypeId }: Props) {
+    const params = useParams<{ locale: string }>();
+    const locale = params?.locale ?? 'en';
+
+    const { data, isLoading, isError, error, refetch } = useFormBuilderPreview(serviceId, formTypeId);
+
+    const [activePageIndex, setActivePageIndex] = useState(0);
+    const [values, setValues] = useState<Record<string, any>>({});
+    const [errors, setErrors] = useState<Errors>({});
+    const [addMoreValues, setAddMoreValues] = useState<AddMoreValues>({});
+
+    const optionsCacheRef = useRef<Record<string, PreviewOption[]>>({});
+    const inFlightRef = useRef<Set<string>>(new Set());
+    const prevValuesRef = useRef<Record<string, any>>({});
+
+    const appendTo = useMemo(() => {
+        if (typeof window === 'undefined') return undefined;
+        return document.body;
+    }, []);
+
+    const pages = data?.pages ?? [];
+    const meta = data?.meta;
+    const rules = (data as any)?.rules as PreviewRule[] | undefined;
+
+    const activePage = pages[activePageIndex];
+
+    const fieldIdToCode = useMemo(() => {
+        const map = new Map<number, string>();
+        for (const p of pages) {
+            for (const c of p.categories ?? []) {
+                for (const f of c.fields ?? []) {
+                    map.set(f.id, f.field_code);
+                }
+            }
+        }
+        return map;
+    }, [pages]);
+
+    const cascadingConfigs = useMemo(() => {
+        const list: Array<{ childCode: string; parentCode: string; masterId: number }> = [];
+        for (const p of pages) {
+            for (const c of p.categories ?? []) {
+                for (const f of c.fields ?? []) {
+                    const oc: any = (f as any).option_config;
+                    if (oc?.source_type === 'MASTER' && oc?.master_table_id && oc?.parent_builder_field_id) {
+                        const parentCode = fieldIdToCode.get(Number(oc.parent_builder_field_id));
+                        if (parentCode) {
+                            list.push({ childCode: f.field_code, parentCode, masterId: Number(oc.master_table_id) });
+                        }
+                    }
+                }
+            }
+        }
+        return list;
+    }, [pages, fieldIdToCode]);
+
+    const computedOverrides = useMemo<Record<string, FieldOverrides>>(() => {
+        const out: Record<string, FieldOverrides> = {};
+        const activeRules = (rules ?? []).filter((r) => r?.is_active === 'Y');
+
+        for (const r of activeRules) {
+            try {
+                if (!evalConditionTree(r.when_json, values)) continue;
+                const actions = normalizeThenActions(r.then_json);
+                for (const a of actions) {
+                    if (!out[a.field]) out[a.field] = {};
+                    out[a.field][a.prop] = a.value;
+                }
+            } catch {
+                // ignore broken rules
+            }
+        }
+
+        return out;
+    }, [rules, values]);
+
+    // Initialize AddMore min rows
+    useEffect(() => {
+        if (!data) return;
+
+        setErrors({});
+
+        // addmore init
+        const groups: PreviewAddMoreGroup[] = [];
+        for (const p of pages) {
+            for (const c of p.categories ?? []) {
+                for (const f of c.fields ?? []) {
+                    if (f.input_type === 'addmore' && Array.isArray(f.add_more_groups)) {
+                        for (const g of f.add_more_groups) groups.push(g);
+                    }
+                }
+            }
+        }
+
+        setAddMoreValues((prev) => {
+            const next: AddMoreValues = { ...prev };
+            for (const g of groups) {
+                const existing = next[g.id] ?? [];
+                const minRows = Math.max(1, Number(g.min_rows ?? 1));
+                if (existing.length >= minRows) continue;
+                next[g.id] = [...existing, ...Array.from({ length: minRows - existing.length }).map(() => ({}))];
+            }
+            return next;
+        });
+    }, [data, pages]);
+
+    // Cascading: clear child when parent changes
+    useEffect(() => {
+        if (!cascadingConfigs.length) return;
+
+        const prev = prevValuesRef.current;
+
+        for (const cfg of cascadingConfigs) {
+            const prevParent = prev[cfg.parentCode];
+            const currParent = values[cfg.parentCode];
+            const prevKey = JSON.stringify(prevParent ?? null);
+            const currKey = JSON.stringify(currParent ?? null);
+
+            if (prevKey !== currKey) {
+                setValues((p) => {
+                    if (!(cfg.childCode in p)) return p;
+                    const copy = { ...p };
+                    delete copy[cfg.childCode];
+                    return copy;
+                });
+
+                setErrors((p) => {
+                    const copy = { ...p };
+                    delete copy[cfg.childCode];
+                    return copy;
+                });
+            }
+        }
+
+        prevValuesRef.current = values;
+    }, [cascadingConfigs, values]);
+
+    // Cascading: fetch options for children when parent value is available
+    useEffect(() => {
+        if (!cascadingConfigs.length) return;
+
+        const fetchOne = async (masterId: number, parentVal: any) => {
+            const pvKey = JSON.stringify(parentVal ?? null);
+            const cacheKey = `master:${masterId}:parent:${pvKey}`;
+            if (optionsCacheRef.current[cacheKey]) return;
+            if (inFlightRef.current.has(cacheKey)) return;
+
+            inFlightRef.current.add(cacheKey);
+            try {
+                const parentValueParam = Array.isArray(parentVal) ? parentVal.join(',') : String(parentVal);
+                const { data: opts } = await apiClient.get<PreviewOption[]>(
+                    `/master/form-builder/master-tables/${masterId}/options`,
+                    { params: { parentValue: parentValueParam } },
+                );
+                optionsCacheRef.current[cacheKey] = opts ?? [];
+            } catch {
+                optionsCacheRef.current[cacheKey] = [];
+            } finally {
+                inFlightRef.current.delete(cacheKey);
+            }
+        };
+
+        for (const cfg of cascadingConfigs) {
+            const parentVal = values[cfg.parentCode];
+            if (isEmptyValue(parentVal)) continue;
+            fetchOne(cfg.masterId, parentVal);
+        }
+    }, [cascadingConfigs, values]);
+
+    const headerTitle = useMemo(() => {
+        if (!meta) return 'Generate Form â€” Preview';
+        const svc = `${meta.serviceId}${meta.serviceName ? ` (${meta.serviceName})` : ''}`;
+        const ft = `${meta.formTypeId}${meta.formTypeName ? ` (${meta.formTypeName})` : ''}`;
+        return `Generate Form â€” Preview â€¢ Service: ${svc} â€¢ Form Type: ${ft}`;
+    }, [meta]);
+
+    const resetAll = useCallback(() => {
+        setValues({});
+        setErrors({});
+        setAddMoreValues({});
+        optionsCacheRef.current = {};
+        inFlightRef.current = new Set();
+        prevValuesRef.current = {};
+    }, []);
+
+    const validateField = useCallback(
+        (field: PreviewField, value: any, override?: FieldOverrides) => {
+            const key = field.field_code;
+            const required = override?.required ?? field.is_required === 'Y';
+
+            if (required && isEmptyValue(value)) {
+                return `${field.label || key} is required`;
+            }
+
+            if (typeof value === 'string') {
+                const len = value.trim().length;
+                if (typeof field.min_length === 'number' && len < field.min_length) {
+                    return `${field.label || key} must be at least ${field.min_length} characters`;
+                }
+                if (typeof field.max_length === 'number' && len > field.max_length) {
+                    return `${field.label || key} must be at most ${field.max_length} characters`;
+                }
+            }
+
+            return '';
+        },
+        [],
+    );
+
+    const onFieldChange = useCallback(
+        (field: PreviewField, nextValue: any) => {
+            const key = field.field_code;
+
+            setValues((prev) => ({ ...prev, [key]: nextValue }));
+
+            const ov = computedOverrides[key];
+            const err = validateField(field, nextValue, ov);
+            setErrors((prev) => {
+                const copy = { ...prev };
+                if (err) copy[key] = err;
+                else delete copy[key];
+                return copy;
+            });
+        },
+        [computedOverrides, validateField],
+    );
+
+    const onFieldBlur = useCallback(
+        (field: PreviewField) => {
+            const key = field.field_code;
+            const value = values[key];
+            const ov = computedOverrides[key];
+            const err = validateField(field, value, ov);
+            setErrors((prev) => {
+                const copy = { ...prev };
+                if (err) copy[key] = err;
+                else delete copy[key];
+                return copy;
+            });
+        },
+        [computedOverrides, validateField, values],
+    );
+
+    const getCascadedOptions = useCallback(
+        (field: PreviewField): PreviewOption[] => {
+            const oc: any = (field as any).option_config;
+            if (!oc || oc.source_type !== 'MASTER' || !oc.master_table_id || !oc.parent_builder_field_id) return [];
+            const parentCode = fieldIdToCode.get(Number(oc.parent_builder_field_id));
+            const parentVal = parentCode ? values[parentCode] : null;
+            if (isEmptyValue(parentVal)) return [];
+
+            const cacheKey = `master:${Number(oc.master_table_id)}:parent:${JSON.stringify(parentVal ?? null)}`;
+            return optionsCacheRef.current[cacheKey] ?? [];
+        },
+        [fieldIdToCode, values],
+    );
+
+    const renderInput = useCallback(
+        (field: PreviewField) => {
+            const key = field.field_code;
+            const value = values[key];
+            const ov = computedOverrides[key];
+
+            const disabled = fieldDisabled(field.is_editable, field.is_readonly, ov);
+            const baseOpts = normalizeOptions(field.options);
+            const cascadedOpts = getCascadedOptions(field);
+            const opts = baseOpts.length ? baseOpts : normalizeOptions(cascadedOpts);
+
+            const commonClass = `w-100 ${errors[key] ? 'p-invalid' : ''}`;
+
+            switch (field.input_type) {
+                case 'textarea':
+                    return (
+                        <InputTextarea
+                            className={commonClass}
+                            value={value ?? ''}
+                            onChange={(e) => onFieldChange(field, e.target.value)}
+                            onBlur={() => onFieldBlur(field)}
+                            rows={4}
+                            autoResize
+                            disabled={disabled}
+                        />
+                    );
+
+                case 'number':
+                    return (
+                        <InputNumber
+                            className={commonClass}
+                            value={typeof value === 'number' ? value : value ?? null}
+                            onValueChange={(e) => onFieldChange(field, e.value)}
+                            onBlur={() => onFieldBlur(field)}
+                            disabled={disabled}
+                            useGrouping={false}
+                            step={field.step ? Number(field.step) : undefined}
+                        />
+                    );
+
+                case 'select':
+                    return (
+                        <Dropdown
+                            className={commonClass}
+                            value={value ?? null}
+                            options={opts}
+                            onChange={(e) => onFieldChange(field, e.value)}
+                            onBlur={() => onFieldBlur(field)}
+                            placeholder="Select"
+                            disabled={disabled}
+                            appendTo={appendTo}
+                            scrollHeight="300px"
+                            panelStyle={{ minWidth: '12rem' }}
+                            showClear
+                        />
+                    );
+
+                case 'radio':
+                    return (
+                        <div className="d-flex flex-column gap-2">
+                            {opts.length === 0 ? (
+                                <small className="text-muted">No options configured</small>
+                            ) : (
+                                opts.map((o) => (
+                                    <label key={`${key}:${String(o.value)}`} className="d-flex align-items-center gap-2">
+                                        <RadioButton
+                                            inputId={`${key}:${String(o.value)}`}
+                                            name={key}
+                                            value={o.value}
+                                            onChange={(e) => onFieldChange(field, e.value)}
+                                            checked={value === o.value}
+                                            disabled={disabled || Boolean(o.disabled)}
+                                        />
+                                        <span>{o.label}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+                    );
+
+                case 'checkbox': {
+                    if (opts.length > 0) {
+                        const arr: any[] = Array.isArray(value) ? value : [];
+                        return (
+                            <div className="d-flex flex-column gap-2">
+                                {opts.map((o) => (
+                                    <label key={`${key}:${String(o.value)}`} className="d-flex align-items-center gap-2">
+                                        <Checkbox
+                                            inputId={`${key}:${String(o.value)}`}
+                                            checked={arr.includes(o.value)}
+                                            onChange={(e) => {
+                                                const checked = e.checked;
+                                                const next = checked ? [...arr, o.value] : arr.filter((x) => x !== o.value);
+                                                onFieldChange(field, next);
+                                            }}
+                                            disabled={disabled || Boolean(o.disabled)}
+                                        />
+                                        <span>{o.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="d-flex align-items-center gap-2">
+                            <Checkbox
+                                inputId={key}
+                                checked={Boolean(value)}
+                                onChange={(e) => onFieldChange(field, e.checked)}
+                                disabled={disabled}
+                            />
+                            <label htmlFor={key} className="m-0">
+                                {field.label}
+                            </label>
+                        </div>
+                    );
+                }
+
+                case 'email':
+                case 'password':
+                case 'tel':
+                case 'url':
+                case 'date':
+                case 'datetime-local':
+                case 'time':
+                case 'text':
+                default:
+                    return (
+                        <InputText
+                            className={commonClass}
+                            type={field.input_type || 'text'}
+                            value={value ?? ''}
+                            onChange={(e) => onFieldChange(field, e.target.value)}
+                            onBlur={() => onFieldBlur(field)}
+                            disabled={disabled}
+                        />
+                    );
+            }
+        },
+        [appendTo, computedOverrides, errors, getCascadedOptions, onFieldBlur, onFieldChange, values],
+    );
+
+    const addRow = useCallback((group: PreviewAddMoreGroup) => {
+        setAddMoreValues((prev) => {
+            const current = prev[group.id] ?? [];
+            const maxRows = group.max_rows ?? null;
+            if (typeof maxRows === 'number' && current.length >= maxRows) return prev;
+            return { ...prev, [group.id]: [...current, {}] };
+        });
+    }, []);
+
+    const removeRow = useCallback((group: PreviewAddMoreGroup, rowIndex: number) => {
+        setAddMoreValues((prev) => {
+            const current = prev[group.id] ?? [];
+            const minRows = Math.max(1, Number(group.min_rows ?? 1));
+            if (current.length <= minRows) return prev;
+            return { ...prev, [group.id]: current.filter((_, idx) => idx !== rowIndex) };
+        });
+    }, []);
+
+    const onAddMoreCellChange = useCallback(
+        (groupId: number, rowIndex: number, column: PreviewAddMoreColumn, nextValue: any) => {
+            const key = column.field_code;
+
+            setAddMoreValues((prev) => {
+                const rows = prev[groupId] ?? [];
+                const nextRows = rows.map((row, idx) => (idx === rowIndex ? { ...row, [key]: nextValue } : row));
+                return { ...prev, [groupId]: nextRows };
+            });
+        },
+        [],
+    );
+
+    const renderAddMoreColumnInput = useCallback(
+        (groupId: number, rowIndex: number, col: PreviewAddMoreColumn, rowValues: Record<string, any>) => {
+            const key = col.field_code;
+            const value = rowValues[key];
+            const disabled = fieldDisabled(col.is_editable, col.is_readonly);
+            const commonClass = 'w-100';
+
+            switch (col.input_type) {
+                case 'textarea':
+                    return (
+                        <InputTextarea
+                            className={commonClass}
+                            value={value ?? ''}
+                            onChange={(e) => onAddMoreCellChange(groupId, rowIndex, col, e.target.value)}
+                            rows={3}
+                            autoResize
+                            disabled={disabled}
+                        />
+                    );
+
+                case 'number':
+                    return (
+                        <InputNumber
+                            className={commonClass}
+                            value={typeof value === 'number' ? value : value ?? null}
+                            onValueChange={(e) => onAddMoreCellChange(groupId, rowIndex, col, e.value)}
+                            disabled={disabled}
+                            useGrouping={false}
+                            step={col.step ? Number(col.step) : undefined}
+                        />
+                    );
+
+                default:
+                    return (
+                        <InputText
+                            className={commonClass}
+                            type={col.input_type || 'text'}
+                            value={value ?? ''}
+                            onChange={(e) => onAddMoreCellChange(groupId, rowIndex, col, e.target.value)}
+                            disabled={disabled}
+                        />
+                    );
+            }
+        },
+        [onAddMoreCellChange],
+    );
+
+    const renderAddMoreGroup = useCallback(
+        (group: PreviewAddMoreGroup) => {
+            const rows = addMoreValues[group.id] ?? [];
+            const maxRows = group.max_rows ?? null;
+
+            return (
+                <div className="border rounded-3 p-3 bg-white">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div className="d-flex flex-column">
+                            <div className="fw-semibold">{group.label}</div>
+                            <small className="text-muted">
+                                Rows: {rows.length}
+                                {typeof maxRows === 'number' ? ` / ${maxRows}` : ''} â€¢ Min: {group.min_rows ?? 1}
+                            </small>
+                        </div>
+
+                        <div className="d-flex gap-2">
+                            <Button
+                                type="button"
+                                label="Add Row"
+                                icon="pi pi-plus"
+                                size="small"
+                                onClick={() => addRow(group)}
+                                disabled={typeof maxRows === 'number' ? rows.length >= maxRows : false}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-3 d-flex flex-column gap-3">
+                        {rows.length === 0 ? (
+                            <small className="text-muted">No rows</small>
+                        ) : (
+                            rows.map((row, rowIndex) => (
+                                <div key={`${group.id}:${rowIndex}`} className="border rounded-3 p-3 bg-light">
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <div className="fw-semibold">Row {rowIndex + 1}</div>
+                                        <Button
+                                            type="button"
+                                            label="Remove"
+                                            icon="pi pi-trash"
+                                            severity="danger"
+                                            outlined
+                                            size="small"
+                                            onClick={() => removeRow(group, rowIndex)}
+                                            disabled={rows.length <= Math.max(1, Number(group.min_rows ?? 1))}
+                                        />
+                                    </div>
+
+                                    <div className="row g-3 mt-1">
+                                        {(group.columns ?? [])
+                                            .slice()
+                                            .sort((a, b) => (a.col_order ?? 0) - (b.col_order ?? 0))
+                                            .map((col) => (
+                                                <div key={`${group.id}:${rowIndex}:${col.field_code}`} className="col-12 col-md-6 col-lg-4">
+                                                    <label className="form-label fw-semibold">{col.label}</label>
+                                                    {col.help_text ? <small className="text-muted d-block mb-1">{col.help_text}</small> : null}
+                                                    {renderAddMoreColumnInput(group.id, rowIndex, col, row)}
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        },
+        [addMoreValues, addRow, removeRow, renderAddMoreColumnInput],
+    );
+
+    const renderField = useCallback(
+        (field: PreviewField) => {
+            const key = field.field_code;
+            const ov = computedOverrides[key];
+            const visible = ov?.visible ?? true;
+            const required = ov?.required ?? field.is_required === 'Y';
+
+            if (!visible) return null;
+
+            if (field.input_type === 'addmore') {
+                const groups = field.add_more_groups ?? [];
+                return (
+                    <div className="d-flex flex-column gap-3">
+                        {groups.length === 0 ? (
+                            <Message severity="warn" text="No AddMore group configured for this field." />
+                        ) : (
+                            groups.map((g) => <div key={`group:${g.id}`}>{renderAddMoreGroup(g)}</div>)
+                        )}
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    <label className="form-label fw-semibold d-flex align-items-center gap-2">
+                        <span>{field.label}</span>
+                        {required ? <span className="text-danger">*</span> : null}
+                    </label>
+
+                    {field.help_text ? <small className="text-muted d-block mb-1">{field.help_text}</small> : null}
+
+                    {renderInput(field)}
+
+                    {errors[key] ? <small className="text-danger d-block mt-1">{errors[key]}</small> : null}
+                </div>
+            );
+        },
+        [computedOverrides, errors, renderAddMoreGroup, renderInput],
+    );
+
+    const onPrev = useCallback(() => setActivePageIndex((p) => Math.max(0, p - 1)), []);
+    const onNext = useCallback(() => setActivePageIndex((p) => Math.min(pages.length - 1, p + 1)), [pages.length]);
+
+    const leftNav = useMemo(() => {
+        return (
+            <div className="border rounded-3 bg-white overflow-hidden">
+                <div
+                    className="px-3 py-3"
+                    style={{
+                        background: 'linear-gradient(135deg, #0b4a7a 0%, #0e6aa8 60%, #0fb0d0 100%)',
+                        color: '#fff',
+                    }}
+                >
+                    <div className="fw-semibold">Preview Steps</div>
+                    <small style={{ opacity: 0.9 }}>Navigate pages like an investor</small>
+                </div>
+
+                <div className="p-2">
+                    {pages.length === 0 ? (
+                        <div className="p-3 text-muted">No pages configured.</div>
+                    ) : (
+                        <div className="list-group list-group-flush">
+                            {pages.map((p, idx) => {
+                                const active = idx === activePageIndex;
+                                return (
+                                    <button
+                                        key={`nav:${p.id}`}
+                                        type="button"
+                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${active ? 'active' : ''}`}
+                                        onClick={() => setActivePageIndex(idx)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <span className="d-flex flex-column text-start">
+                                            <span className="fw-semibold">{p.page_name || `Page ${idx + 1}`}</span>
+                                            <small className={active ? 'text-white-50' : 'text-muted'}>Order: {p.preference}</small>
+                                        </span>
+                                        <span className={`badge ${active ? 'bg-light text-dark' : 'bg-secondary'}`}>{idx + 1}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }, [activePageIndex, pages]);
+
+    if (isLoading) {
+        return (
+            <div className="container-fluid py-4">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                    <Skeleton width="60%" height="2rem" />
+                    <div className="d-flex gap-2">
+                        <Skeleton width="8rem" height="2.2rem" />
+                        <Skeleton width="8rem" height="2.2rem" />
+                    </div>
+                </div>
+
+                <div className="row g-3">
+                    <div className="col-12 col-lg-3">
+                        <Skeleton height="20rem" />
+                    </div>
+                    <div className="col-12 col-lg-9">
+                        <Skeleton height="25rem" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (isError || !data) {
+        const msg =
+            (error as any)?.response?.data?.message || (error as Error)?.message || 'Failed to load preview definition.';
+
+        return (
+            <div className="container-fluid py-4">
+                <Message severity="error" text={msg} />
+                <div className="mt-3 d-flex gap-2">
+                    <Button label="Retry" icon="pi pi-refresh" onClick={() => refetch()} />
+                    <Link
+                        href={`/${locale}/admin/master/form-builder/services/${serviceId}/forms/${formTypeId}/builder`}
+                        className="btn btn-outline-secondary"
+                    >
+                        Back to Builder
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const note = (data as any)?.note as string | undefined;
+
+    return (
+        <div className="container-fluid py-4">
+            <div className="mb-3">
+                <div
+                    className="rounded-4 p-4 d-flex flex-column gap-2"
+                    style={{
+                        background: 'radial-gradient(circle at top left, #0fb0d0 0%, #0e6aa8 45%, #0b4a7a 100%)',
+                        color: '#fff',
+                    }}
+                >
+                    <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                        <div className="d-flex flex-column">
+                            <div className="text-uppercase" style={{ letterSpacing: '0.06em', opacity: 0.95 }}>
+                                Investor Preview (No Submission)
+                            </div>
+                            <h2 className="m-0" style={{ fontWeight: 700 }}>
+                                {headerTitle}
+                            </h2>
+                        </div>
+
+                        <div className="d-flex gap-2 flex-wrap">
+                            <Link
+                                href={`/${locale}/admin/master/form-builder/services/${serviceId}/forms/${formTypeId}/builder`}
+                                className="btn btn-light"
+                                style={{ borderRadius: 10 }}
+                            >
+                                <i className="pi pi-arrow-left me-2" />
+                                Back to Builder
+                            </Link>
+                            <Button type="button" label="Reset Preview" icon="pi pi-refresh" severity="secondary" onClick={resetAll} rounded />
+                        </div>
+                    </div>
+
+                    {note ? (
+                        <div className="mt-1">
+                            <span className="badge bg-light text-dark px-3 py-2" style={{ borderRadius: 999 }}>
+                                {note}
+                            </span>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+
+            <div className="row g-3">
+                <div className="col-12 col-lg-3">{leftNav}</div>
+
+                <div className="col-12 col-lg-9">
+                    <div className="border rounded-4 bg-white overflow-hidden">
+                        <div className="px-4 py-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div className="d-flex flex-column">
+                                <div className="fw-semibold">{activePage?.page_name || (pages.length ? `Page ${activePageIndex + 1}` : 'No Page')}</div>
+                                <small className="text-muted">
+                                    Step {pages.length ? activePageIndex + 1 : 0} of {pages.length}
+                                </small>
+                            </div>
+
+                            <div className="d-flex gap-2">
+                                <Button type="button" label="Previous" icon="pi pi-angle-left" outlined onClick={onPrev} disabled={activePageIndex <= 0} />
+                                <Button
+                                    type="button"
+                                    label={activePageIndex >= pages.length - 1 ? 'Finish' : 'Next'}
+                                    icon="pi pi-angle-right"
+                                    iconPos="right"
+                                    onClick={onNext}
+                                    disabled={pages.length === 0 || activePageIndex >= pages.length - 1}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-4">
+                            {pages.length === 0 ? (
+                                <Message severity="warn" text="No pages found for this service/form type. Add pages in Builder first." />
+                            ) : (
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                    }}
+                                >
+                                    <div className="d-flex flex-column gap-4">
+                                        {(activePage?.categories ?? [])
+                                            .slice()
+                                            .sort((a, b) => (a.preference ?? 0) - (b.preference ?? 0))
+                                            .map((cat) => (
+                                                <div key={`cat:${cat.page_category_mapping_id}`} className="border rounded-4 p-4 bg-light">
+                                                    <div className="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                                                        <div className="d-flex flex-column">
+                                                            <div className="fw-semibold fs-5">{cat.category_name}</div>
+                                                            {cat.help_text ? <small className="text-muted">{cat.help_text}</small> : null}
+                                                        </div>
+                                                        <span className="badge bg-secondary">Order: {cat.preference}</span>
+                                                    </div>
+
+                                                    <div className="mt-3 row g-3">
+                                                        {(cat.fields ?? [])
+                                                            .slice()
+                                                            .sort((a, b) => (a.preference ?? 0) - (b.preference ?? 0))
+                                                            .map((field) => {
+                                                                const node = renderField(field);
+                                                                if (!node) return null;
+                                                                return (
+                                                                    <div key={`field:${field.id}`} className={field.input_type === 'addmore' ? 'col-12' : 'col-12 col-md-6'}>
+                                                                        {node}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                        <div className="d-flex justify-content-end">
+                                            <Message severity="info" text="Preview only â€” this will not submit or save data anywhere." />
+                                        </div>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-3 border rounded-4 bg-white p-3">
+                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div className="fw-semibold">Preview State (Local Only)</div>
+                            <small className="text-muted">Stored in-memory for this page session. Refresh clears it.</small>
+                        </div>
+
+                        <details className="mt-2">
+                            <summary className="text-primary" style={{ cursor: 'pointer' }}>
+                                View current values (no submission)
+                            </summary>
+                            <pre className="mt-2 p-3 bg-light rounded-3" style={{ maxHeight: 280, overflow: 'auto' }}>
+                                {JSON.stringify({ values, addMoreValues, rulesApplied: computedOverrides }, null, 2)}
+                            </pre>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+===== FILE: apps\frontend\src\hooks\master\useFormFieldOptions.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/lib/api-client';
+
+export function useFormFieldOptions(builderFieldId?: number | null) {
+  return useQuery({
+    queryKey: ['fb-field-options', builderFieldId],
+    enabled: !!builderFieldId,
+    queryFn: async () => {
+      const res = await apiClient.get(`/master/form-builder/fields/${builderFieldId}/options`);
+      return res.data; // may be null
+    },
+  });
+}
+
+export function useSaveFormFieldOptions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      builderFieldId: number;
+      sourceType: 'STATIC' | 'MASTER';
+      masterTableId?: number;
+      staticOptions?: Array<{ label: string; value: string | number; disabled?: boolean; order?: number }>;
+      parentBuilderFieldId?: number;
+    }) => {
+      const { builderFieldId, ...dto } = payload;
+      const res = await apiClient.put(`/master/form-builder/fields/${builderFieldId}/options`, dto);
+      return res.data;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['fb-field-options', vars.builderFieldId] });
+    },
+  });
+}
+
+===== FILE: How_to_save.ps1 =====
+# Always write parts into a known safe folder inside the repo root
+$repoRoot = (git rev-parse --show-toplevel).Trim()
+$outDir = Join-Path $repoRoot "dump_parts"
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+# Read dump using .NET (works on older PowerShell)
+$dumpPath = Join-Path $repoRoot "repo_dump.txt"
+$content = [System.IO.File]::ReadAllText($dumpPath, [System.Text.Encoding]::UTF8)
+
+$chunkSize = 1500000   # ~1.5M chars per part (safe)
+$part = 1
+
+for ($i = 0; $i -lt $content.Length; $i += $chunkSize) {
+  $len = [Math]::Min($chunkSize, $content.Length - $i)
+  $chunk = $content.Substring($i, $len)
+
+  $fileName = ("repo_dump_part_{0:D2}.txt" -f $part)
+  $filePath = Join-Path $outDir $fileName
+
+  [System.IO.File]::WriteAllText($filePath, $chunk, [System.Text.Encoding]::UTF8)
+  $part++
+}
+
+Write-Host "DONE! Parts created in: $outDir"
+Write-Host ("Total parts: {0}" -f ($part-1))
+
+-----------------------------
+# ==============================
+# Repo Dump: Path + Content Only
+# Excludes: hidden folders + node_modules
+# ==============================
+
+$repoRoot = Get-Location
+$outFile  = Join-Path $repoRoot "repo_dump.txt"
+
+# Delete old dump if it exists
+if (Test-Path $outFile) { Remove-Item $outFile -Force }
+
+# Helper: returns $true if any folder segment in the path starts with "."
+function HasHiddenSegment($fullPath, $rootPath) {
+    $relative = $fullPath.Substring($rootPath.Length).TrimStart('\','/')
+    $segments = $relative -split '[\\/]+'
+    return ($segments | Where-Object { $_ -like ".*" }).Count -gt 0
+}
+
+# Collect files:
+# - exclude node_modules anywhere
+# - exclude any path containing a hidden folder segment (".git", ".next", ".vscode", etc.)
+$files = Get-ChildItem -Path $repoRoot -Recurse -File |
+    Where-Object {
+        $_.FullName -notmatch '[\\/]+node_modules[\\/]+'
+    } |
+    Where-Object {
+        -not (HasHiddenSegment $_.FullName $repoRoot.Path)
+    } |
+    Sort-Object FullName
+
+foreach ($f in $files) {
+    $relativePath = $f.FullName.Substring($repoRoot.Path.Length).TrimStart('\','/')
+
+    # Write ONLY: file path + content (no extra metadata)
+    "===== FILE: $relativePath =====" | Out-File -FilePath $outFile -Encoding UTF8 -Append
+
+    try {
+        Get-Content -LiteralPath $f.FullName -Raw -ErrorAction Stop |
+            Out-File -FilePath $outFile -Encoding UTF8 -Append
+    }
+    catch {
+        # If file can't be read as text (binary/locked), write a minimal marker
+        "[SKIPPED: Could not read as text] $($_.Exception.Message)" |
+            Out-File -FilePath $outFile -Encoding UTF8 -Append
+    }
+
+    "" | Out-File -FilePath $outFile -Encoding UTF8 -Append  # blank line between files
+}
+
+Write-Host "âœ… DONE: $outFile"
+Write-Host ("Files dumped: {0}" -f $files.Count)
+Write-Host ("Dump size (MB): {0:N2}" -f ((Get-Item $outFile).Length / 1MB))
+
+

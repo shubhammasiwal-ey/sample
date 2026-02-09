@@ -1,0 +1,102 @@
+/* Tailwind removed from global scope */
+
+/*
+  ✅ IMPORTANT:
+  PrimeReact overlay sizing/positioning relies on computed element metrics.
+  This old debug rule caused dropdown overlay panels to shrink/jitter:
+  * { border: 1px solid transparent; }
+
+  If you still want border debugging, enable by adding class "debug-borders"
+  to <html> in dev tools.
+*/
+html.debug-borders * {
+  border: 1px solid rgba(255, 0, 0, 0.08);
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.submenu .submenu-link {
+  padding-left: 10px !important;
+  color: #e8e8e8 !important;
+}
+
+.submenu .submenu-link.active {
+  color: #000 !important;
+  font-weight: 600;
+}
+
+.sidebar {
+  background: #212529;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.sidebar a {
+  color: rgba(255, 255, 255, 0.8) !important;
+  padding: 10px 15px;
+  margin: 5px 0;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.sidebar a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white !important;
+}
+
+.sidebar a.active {
+  background-color: #0d6efd;
+  color: white !important;
+  font-weight: 600;
+}
+
+.sidebar h2 {
+  color: white;
+  padding: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-card {
+  border-left: 4px solid #0d6efd;
+  transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-logout {
+  margin-top: auto;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.investor-sidebar {
+  --tw-bg-opacity: 1;
+  background-color: rgb(246 246 246 / var(--tw-bg-opacity, 1));
+}
+
+.investor-sidebar a.active {
+  background-color: transparent;
+  color: #1564FF !important;
+}
+
+/* Keep autocomplete dropdown within field width and wrap long option text */
+.swcs-autocomplete-panel {
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+.swcs-autocomplete-panel .p-autocomplete-items .p-autocomplete-item {
+  white-space: normal !important;
+  word-break: break-word;
+}
